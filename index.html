@@ -719,7 +719,7 @@
         // timeline has moved. Desktop movement follows the visible timeline.
         if (swipeMomentum && Math.abs(swipeMomentum.velocity) > 0.08) {
           travelDirection = Math.sign(swipeMomentum.velocity)
-        } else if (!touchGesture && !swipeMomentum && Math.abs(visualDelta) > 0.01) {
+        } else if (!touchGesture && !swipeMomentum && timelineScrollY > TURN_SCROLL_DISTANCE && Math.abs(visualDelta) > 0.01) {
           directionDistance = Math.sign(visualDelta) === Math.sign(directionDistance)
             ? directionDistance + visualDelta : visualDelta
           if (Math.abs(directionDistance) >= 3) travelDirection = Math.sign(directionDistance)
@@ -997,6 +997,12 @@
         }
         const deltaTime = Math.max(16, now - lastInputTime)
         const velocity = Math.abs(deltaY) / deltaTime
+        if (!touchGesture && !swipeMomentum && (timelineScrollY <= TURN_SCROLL_DISTANCE || characterTurn === 0)) {
+          // Establish desktop facing during the turn-in distance, before the
+          // timeline has any visible movement from which to infer direction.
+          travelDirection = Math.sign(deltaY)
+          directionDistance = 0
+        }
 
         if (!ticking) lastFrameTime = now
         targetProgress = getProgress()
