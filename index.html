@@ -663,7 +663,9 @@
         const deltaTime = Math.min(64, Math.max(1, now - lastFrameTime))
         // Exact critically damped spring: preserve velocity across gestures,
         // with no bounce and the same response at every display refresh rate.
-        if (reduceMotion) {
+        const directTouch = touchGesture?.axis === 'horizontal' || swipeMomentum?.axis === 'horizontal'
+        if (reduceMotion || directTouch) {
+          // Horizontal dragging follows the finger; momentum already supplies its easing.
           displayedProgress = targetProgress
           progressVelocity = 0
         } else {
@@ -834,16 +836,17 @@
       let touchGesture = null
       let suppressSwipeClickUntil = 0
       // Horizontal swipes cover more ground; both axes share release physics.
-      const coastAfterSwipe = (velocity) => {
+      const coastAfterSwipe = (velocity, axis) => {
         if (reduceMotion || Math.abs(velocity) < 0.08) return
-        const coast = { frame: 0, time: performance.now(), position: timelineScrollY, velocity }
+        const coast = { frame: 0, time: performance.now(), position: timelineScrollY, velocity, axis }
+        const frictionTime = axis === 'horizontal' ? 280 : 325
         swipeMomentum = coast
         const step = (now) => {
           if (swipeMomentum !== coast) return
           const elapsed = Math.min(64, now - coast.time)
           coast.time = now
-          const decay = Math.exp(-elapsed / 325)
-          coast.position += coast.velocity * 325 * (1 - decay)
+          const decay = Math.exp(-elapsed / frictionTime)
+          coast.position += coast.velocity * frictionTime * (1 - decay)
           coast.velocity *= decay
           const maxScroll = document.documentElement.scrollHeight - window.innerHeight
           coast.position = Math.max(0, Math.min(maxScroll, coast.position))
@@ -885,7 +888,10 @@
         const distance = touchGesture.axis === 'horizontal' ? dx * 1.7 : dy
         const elapsed = Math.max(8, now - touchGesture.time)
         const velocity = (distance - touchGesture.distance) / elapsed
-        touchGesture.velocity = elapsed > 100 ? velocity : touchGesture.velocity * 0.25 + velocity * 0.75
+        const blend = 1 - Math.exp(-elapsed / 40)
+        // Time-based filtering makes release speed consistent across touch refresh rates.
+        touchGesture.velocity = elapsed > 100 || Math.sign(velocity) !== Math.sign(touchGesture.velocity)
+          ? velocity : touchGesture.velocity + (velocity - touchGesture.velocity) * blend
         touchGesture.distance = distance
         touchGesture.time = now
         suppressSwipeClickUntil = now + 500
@@ -899,7 +905,10 @@
           suppressSwipeClickUntil = now + 500
           // Holding the finger still before lifting should stop the glide.
           if (event.type === 'touchend' && now - touchGesture.time < 100) {
-            coastAfterSwipe(Math.max(-8, Math.min(8, touchGesture.velocity)))
+            const horizontal = touchGesture.axis === 'horizontal'
+            const speedLimit = horizontal ? 4.5 : 8
+            const releaseVelocity = touchGesture.velocity * Math.exp(-(now - touchGesture.time) / 70)
+            coastAfterSwipe(Math.max(-speedLimit, Math.min(speedLimit, releaseVelocity)), touchGesture.axis)
           }
         }
         touchGesture = null
