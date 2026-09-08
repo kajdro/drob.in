@@ -20,8 +20,8 @@
         --background: #080b10;
         --text: #f4f6f8;
         --secondary: #858d99;
-        --body-size: 1.125rem;
-        --detail-size: 0.8125rem;
+        --line: rgba(133, 141, 153, 0.34);
+        --spacing: clamp(11rem, 22vw, 20rem);
         --regular: 450;
         --medium: 550;
       }
@@ -39,192 +39,435 @@
         background: var(--background);
         color: var(--text);
         font-family: "Geist", sans-serif;
-        font-size: var(--body-size);
+        font-size: 1.125rem;
         font-weight: var(--regular);
-        line-height: 1.55;
+        line-height: 1.45;
         letter-spacing: -0.018em;
         -webkit-font-smoothing: antialiased;
         text-rendering: optimizeLegibility;
       }
 
-      main {
-        width: min(100% - 3rem, 43rem);
-        margin: 0 auto;
-        padding: clamp(4rem, 13vh, 8.5rem) 0 5rem;
+      .scroll-space {
+        height: 925vh;
       }
 
-      header,
-      section {
-        display: grid;
-        grid-template-columns: minmax(7.5rem, 0.33fr) minmax(0, 1fr);
-        column-gap: 2rem;
+      .stage {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        height: 100svh;
+        overflow: hidden;
+        isolation: isolate;
       }
 
-      header {
-        margin-bottom: clamp(5rem, 13vh, 9rem);
-      }
-
-      h1,
-      p {
+      .site-title {
+        position: absolute;
+        z-index: 5;
+        top: clamp(1.5rem, 4vw, 2.5rem);
+        left: clamp(1.5rem, 4vw, 3.5rem);
         margin: 0;
-      }
-
-      h1,
-      a,
-      .role,
-      .position {
+        font-size: 0.8125rem;
         font-weight: var(--medium);
-      }
-
-      h1 {
-        font-size: var(--body-size);
-        line-height: inherit;
-      }
-
-      .role,
-      .label,
-      time,
-      .company {
-        color: var(--secondary);
-      }
-
-      .label,
-      time,
-      .company {
-        font-size: var(--detail-size);
+        line-height: 1.35;
         letter-spacing: -0.006em;
       }
 
-      .bio {
-        margin-bottom: clamp(5rem, 12vh, 8rem);
+      .site-title span {
+        display: block;
+        color: var(--secondary);
+        font-weight: var(--regular);
       }
 
-      .copy {
-        display: grid;
-        gap: 1.5rem;
-      }
-
-      a {
-        color: var(--text);
-        text-decoration-color: var(--secondary);
-        text-decoration-thickness: 0.06em;
-        text-underline-offset: 0.18em;
-      }
-
-      a:hover,
-      a:focus-visible {
-        text-decoration-color: var(--text);
-      }
-
-      a:focus-visible {
-        outline: 1px solid var(--text);
-        outline-offset: 0.2rem;
-      }
-
-      .timeline {
-        list-style: none;
+      .scroll-prompt {
+        position: absolute;
+        z-index: 5;
+        top: clamp(1.5rem, 4vw, 2.5rem);
+        right: clamp(1.5rem, 4vw, 3.5rem);
         margin: 0;
-        padding: 0;
+        color: var(--secondary);
+        font-size: 0.8125rem;
+        letter-spacing: -0.006em;
+        transition: opacity 180ms ease-out;
       }
 
-      .timeline li {
-        display: grid;
-        grid-template-columns: 6.5rem minmax(0, 1fr);
-        column-gap: 1rem;
-        padding: 0.85rem 0;
-        border-top: 1px solid color-mix(in srgb, var(--secondary) 28%, transparent);
+      .scroll-prompt.is-hidden {
+        opacity: 0;
       }
 
-      .timeline li:last-child {
-        border-bottom: 1px solid color-mix(in srgb, var(--secondary) 28%, transparent);
+      .character {
+        position: absolute;
+        z-index: 4;
+        left: 50%;
+        bottom: 42%;
+        width: clamp(8.25rem, 14vw, 11.75rem);
+        aspect-ratio: 0.6633;
+        background-image: url("assets/kaj-walk-cycle.png");
+        background-repeat: no-repeat;
+        background-position: 0% 0%;
+        background-size: 400% 100%;
+        image-rendering: pixelated;
+        transform: translate3d(-50%, 0, 0);
+        transform-origin: 50% 100%;
+        will-change: transform;
       }
 
-      time {
-        padding-top: 0.18rem;
+      .timeline-window {
+        position: absolute;
+        z-index: 2;
+        top: 58%;
+        left: 0;
+        width: 100%;
+        height: 8rem;
       }
 
-      .position {
+      .timeline-track {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        height: 100%;
+        will-change: transform;
+      }
+
+      .timeline-line {
+        position: absolute;
+        top: 0;
+        left: -100vw;
+        width: calc(15 * var(--spacing) + 200vw);
+        height: 1px;
+        background: var(--line);
+      }
+
+      .year-mark {
+        position: absolute;
+        top: 0;
+        left: calc(var(--index) * var(--spacing));
+        width: 5rem;
+        transform: translateX(-50%);
+        color: var(--secondary);
+        text-align: center;
+        font-size: 0.8125rem;
+        letter-spacing: -0.006em;
+        transition: color 150ms ease, opacity 150ms ease;
+      }
+
+      .year-mark::before {
+        content: "";
         display: block;
-        font-size: var(--body-size);
-        line-height: 1.4;
+        width: 1px;
+        height: 0.5rem;
+        margin: -0.25rem auto 1.15rem;
+        background: currentColor;
       }
 
-      .company {
+      .year-mark.is-current {
+        color: var(--text);
+      }
+
+      .center-notch {
+        position: absolute;
+        z-index: 3;
+        top: calc(58% - 0.35rem);
+        left: 50%;
+        width: 1px;
+        height: 0.7rem;
+        background: var(--text);
+        transform: translateX(-50%);
+      }
+
+      .chapter {
+        position: absolute;
+        z-index: 4;
+        top: calc(58% + 3.55rem);
+        left: 50%;
+        width: min(31rem, calc(100% - 3rem));
+        transform: translateX(-50%);
+        text-align: center;
+      }
+
+      .chapter-date,
+      .chapter-company,
+      .chapter-description {
+        margin: 0;
+      }
+
+      .chapter-date,
+      .chapter-company,
+      .chapter-description {
+        color: var(--secondary);
+        font-size: 0.8125rem;
+        letter-spacing: -0.006em;
+      }
+
+      .chapter-role {
+        margin: 0.18rem 0 0;
+        font-size: 1.125rem;
+        font-weight: var(--medium);
+      }
+
+      .chapter-company {
+        margin-top: 0.05rem;
+      }
+
+      .chapter-description {
+        max-width: 29rem;
+        margin: 0.9rem auto 0;
+        line-height: 1.5;
+      }
+
+      .chapter.is-changing {
+        animation: chapter-change 180ms cubic-bezier(0.215, 0.61, 0.355, 1);
+      }
+
+      @keyframes chapter-change {
+        from {
+          opacity: 0;
+          transform: translate3d(-50%, 0.35rem, 0);
+        }
+        to {
+          opacity: 1;
+          transform: translate3d(-50%, 0, 0);
+        }
+      }
+
+      .progress {
+        position: absolute;
+        z-index: 5;
+        right: clamp(1.5rem, 4vw, 3.5rem);
+        bottom: clamp(1.5rem, 4vw, 2.5rem);
+        width: 3rem;
+        height: 1px;
+        background: var(--line);
+      }
+
+      .progress span {
         display: block;
-        margin-top: 0.08rem;
+        width: 100%;
+        height: 100%;
+        background: var(--text);
+        transform: scaleX(0);
+        transform-origin: 0 50%;
+        will-change: transform;
+      }
+
+      @media (max-height: 43rem) {
+        .character {
+          bottom: 43%;
+          width: 7.25rem;
+        }
+
+        .timeline-window {
+          top: 60%;
+        }
+
+        .center-notch {
+          top: calc(60% - 0.35rem);
+        }
+
+        .chapter {
+          top: calc(60% + 3.2rem);
+        }
+
+        .chapter-description {
+          margin-top: 0.45rem;
+        }
       }
 
       @media (max-width: 38rem) {
-        main {
-          width: min(100% - 2rem, 43rem);
-          padding-top: 3rem;
+        :root {
+          --spacing: 10.5rem;
         }
 
-        header,
-        section {
-          grid-template-columns: 1fr;
+        .character {
+          bottom: 44%;
+          width: 8.5rem;
         }
 
-        .role,
-        .copy,
-        .timeline {
-          margin-top: 1.5rem;
+        .timeline-window {
+          top: 56%;
         }
 
-        .timeline li {
-          grid-template-columns: 5.5rem minmax(0, 1fr);
+        .center-notch {
+          top: calc(56% - 0.35rem);
+        }
+
+        .chapter {
+          top: calc(56% + 3.55rem);
+        }
+
+        .scroll-prompt {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .scroll-prompt,
+        .year-mark {
+          transition: none;
+        }
+
+        .chapter.is-changing {
+          animation: none;
         }
       }
     </style>
   </head>
   <body>
-    <main>
-      <header>
-        <h1>Kaj Drobin</h1>
-        <p class="role">Design &amp; Product</p>
-      </header>
+    <main class="scroll-space">
+      <section class="stage" aria-label="Kaj Drobin career timeline">
+        <h1 class="site-title">Kaj Drobin<span>Design &amp; Product</span></h1>
+        <p class="scroll-prompt">Scroll to walk back in time</p>
 
-      <section class="bio" aria-labelledby="about-label">
-        <p class="label" id="about-label">About</p>
-        <div class="copy">
-          <p>Hi! I was born in Stockholm and live here with my family.</p>
-          <p>I led product for <a href="https://shop.app/">Shop</a> at <a href="https://www.shopify.com/">Shopify</a>, where I helped build Shop and Shop Pay after joining through the acquisition of Tictail. Before that, I co-founded Tictail and led design and product. Earlier, I was Digital Art Director and Partner at Identity Works, working with clients including Spotify and Shopify.</p>
+        <div class="character" role="img" aria-label="8-bit character of Kaj Drobin walking"></div>
+
+        <div class="timeline-window" aria-hidden="true">
+          <div class="timeline-track" id="timeline-track">
+            <div class="timeline-line"></div>
+            <span class="year-mark" style="--index: 0">2024</span>
+            <span class="year-mark" style="--index: 1">2023</span>
+            <span class="year-mark" style="--index: 2">2022</span>
+            <span class="year-mark" style="--index: 3">2021</span>
+            <span class="year-mark" style="--index: 4">2020</span>
+            <span class="year-mark" style="--index: 5">2019</span>
+            <span class="year-mark" style="--index: 6">2018</span>
+            <span class="year-mark" style="--index: 7">2017</span>
+            <span class="year-mark" style="--index: 8">2016</span>
+            <span class="year-mark" style="--index: 9">2015</span>
+            <span class="year-mark" style="--index: 10">2014</span>
+            <span class="year-mark" style="--index: 11">2013</span>
+            <span class="year-mark" style="--index: 12">2012</span>
+            <span class="year-mark" style="--index: 13">2011</span>
+            <span class="year-mark" style="--index: 14">2010</span>
+            <span class="year-mark" style="--index: 15">2009</span>
+          </div>
         </div>
-      </section>
+        <div class="center-notch" aria-hidden="true"></div>
 
-      <section aria-labelledby="experience-label">
-        <p class="label" id="experience-label">Experience</p>
-        <ol class="timeline">
-          <li>
-            <time datetime="2024">2024&ndash;Now</time>
-            <div>
-              <span class="position">Co-founder</span>
-              <span class="company">Stilla</span>
-            </div>
-          </li>
-          <li>
-            <time datetime="2018/2024">2018&ndash;2024</time>
-            <div>
-              <span class="position">Director of Product, Shop</span>
-              <span class="company">Shopify</span>
-            </div>
-          </li>
-          <li>
-            <time datetime="2011/2018">2011&ndash;2018</time>
-            <div>
-              <span class="position">CPO &amp; Co-founder</span>
-              <span class="company">Tictail</span>
-            </div>
-          </li>
-          <li>
-            <time datetime="2009/2011">2009&ndash;2011</time>
-            <div>
-              <span class="position">Digital Art Director &amp; Partner</span>
-              <span class="company">Identity Works</span>
-            </div>
-          </li>
-        </ol>
+        <article class="chapter" id="chapter">
+          <p class="chapter-date" id="chapter-date">2024–Now</p>
+          <h2 class="chapter-role" id="chapter-role">Co-founder</h2>
+          <p class="chapter-company" id="chapter-company">Stilla</p>
+          <p class="chapter-description" id="chapter-description">Building a new way for teams to work with AI.</p>
+        </article>
+
+        <div class="progress" aria-hidden="true"><span id="progress"></span></div>
       </section>
     </main>
+
+    <script>
+      const years = Array.from(document.querySelectorAll('.year-mark'))
+      const track = document.querySelector('#timeline-track')
+      const character = document.querySelector('.character')
+      const chapter = document.querySelector('#chapter')
+      const date = document.querySelector('#chapter-date')
+      const role = document.querySelector('#chapter-role')
+      const company = document.querySelector('#chapter-company')
+      const description = document.querySelector('#chapter-description')
+      const prompt = document.querySelector('.scroll-prompt')
+      const progressBar = document.querySelector('#progress')
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+      const chapters = [
+        {
+          from: 0,
+          to: 0,
+          date: '2024–Now',
+          role: 'Co-founder',
+          company: 'Stilla',
+          description: 'Building a new way for teams to work with AI.'
+        },
+        {
+          from: 1,
+          to: 6,
+          date: '2018–2024',
+          role: 'Director of Product, Shop',
+          company: 'Shopify',
+          description: 'Led product for Shop and helped create Shop and Shop Pay after joining through the acquisition of Tictail.'
+        },
+        {
+          from: 7,
+          to: 13,
+          date: '2011–2018',
+          role: 'CPO & Co-founder',
+          company: 'Tictail',
+          description: 'Co-founded Tictail and led design and product through its acquisition by Shopify.'
+        },
+        {
+          from: 14,
+          to: 15,
+          date: '2009–2011',
+          role: 'Digital Art Director & Partner',
+          company: 'Identity Works',
+          description: 'Worked with international clients including Spotify and Shopify across launch films, the U.S. launch, global brand, and homepage.'
+        }
+      ]
+
+      let currentChapter = 0
+      let ticking = false
+      let spacing
+
+      const getSpacing = () => {
+        const probe = document.createElement('div')
+        probe.style.cssText = 'position:absolute;width:var(--spacing);visibility:hidden'
+        document.body.appendChild(probe)
+        const width = probe.getBoundingClientRect().width
+        probe.remove()
+        return width
+      }
+
+      const setChapter = (index) => {
+        if (index === currentChapter) return
+        currentChapter = index
+        const content = chapters[index]
+        date.textContent = content.date
+        role.textContent = content.role
+        company.textContent = content.company
+        description.textContent = content.description
+        chapter.classList.remove('is-changing')
+        void chapter.offsetWidth
+        chapter.classList.add('is-changing')
+      }
+
+      const render = () => {
+        ticking = false
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+        const progress = maxScroll > 0 ? Math.min(1, Math.max(0, window.scrollY / maxScroll)) : 0
+        const exactIndex = progress * (years.length - 1)
+        const yearIndex = Math.round(exactIndex)
+        track.style.transform = `translate3d(${-exactIndex * spacing}px, 0, 0)`
+        progressBar.style.transform = `scaleX(${progress})`
+        prompt.classList.toggle('is-hidden', progress > 0.025)
+
+        years.forEach((year, index) => year.classList.toggle('is-current', index === yearIndex))
+
+        const nextChapter = chapters.findIndex((item) => yearIndex >= item.from && yearIndex <= item.to)
+        if (nextChapter >= 0) setChapter(nextChapter)
+
+        if (!reduceMotion) {
+          const frame = Math.floor(window.scrollY / 42) % 4
+          const positions = ['0%', '33.333%', '66.666%', '100%']
+          character.style.backgroundPosition = `${positions[frame]} 0%`
+          const stride = Math.sin(window.scrollY / 42 * Math.PI) * Math.min(2.5, Math.abs(window.scrollY - (render.lastY || 0)) * 0.18)
+          character.style.transform = `translate3d(-50%, ${-Math.abs(stride)}px, 0)`
+        }
+
+        render.lastY = window.scrollY
+      }
+
+      const requestRender = () => {
+        if (ticking) return
+        ticking = true
+        requestAnimationFrame(render)
+      }
+
+      const handleResize = () => {
+        spacing = getSpacing()
+        requestRender()
+      }
+
+      spacing = getSpacing()
+      window.addEventListener('scroll', requestRender, { passive: true })
+      window.addEventListener('resize', handleResize)
+      render()
+    </script>
   </body>
 </html>
