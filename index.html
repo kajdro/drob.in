@@ -157,6 +157,10 @@
         transform: translate3d(0, 0, 0);
       }
 
+      .character.is-entering {
+        transition: none;
+      }
+
       .character-sprite {
         position: absolute;
         bottom: 0;
@@ -634,6 +638,7 @@
       let runUntil = 0
       let lastCharacterMotionTime = -Infinity
       let characterTurn = 0
+      let entrance = null
       let fastInputSamples = 0
       let automaticWalk = null
       let travelDirection = 1
@@ -642,10 +647,11 @@
       const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
       const turnPositions = ['0%', '33.333%', '66.667%', '100%']
 
-      ;['assets/kaj-turn-right.png', 'assets/kaj-walk-clean.png', 'assets/kaj-run-refined.png'].forEach((source) => {
+      const spritesReady = Promise.all(['assets/kaj-turn-right.png', 'assets/kaj-walk-clean.png', 'assets/kaj-run-refined.png'].map((source) => {
         const image = new Image()
         image.src = source
-      })
+        return image.decode()
+      })).then(() => true, () => false)
 
       const getSpacing = () => {
         const probe = document.createElement('div')
@@ -692,6 +698,11 @@
 
       const render = (now) => {
         ticking = false
+        if (entrance) {
+          renderEntrance(now)
+          lastFrameTime = now
+          return
+        }
         const deltaTime = Math.min(64, Math.max(1, now - lastFrameTime))
         // Exact critically damped spring: preserve velocity across gestures,
         // with no bounce and the same response at every display refresh rate.
@@ -820,6 +831,7 @@
 
       let swipeMomentum = null
       const cancelAutomaticWalk = () => {
+        if (entrance) finishEntrance()
         if (swipeMomentum) {
           cancelAnimationFrame(swipeMomentum.frame)
           window.scrollTo(0, timelineScrollY)
@@ -866,7 +878,7 @@
       })
       years.forEach((year, index) => year.addEventListener('click', () => walkToYear(index)))
       window.addEventListener('wheel', () => {
-        if (automaticWalk || swipeMomentum) cancelAutomaticWalk()
+        if (entrance || automaticWalk || swipeMomentum) cancelAutomaticWalk()
       }, { passive: true })
       let touchGesture = null
       let suppressSwipeClickUntil = 0
@@ -986,18 +998,83 @@
         }
       })
 
-      const showEntrance = () => {
+      const finishEntrance = () => {
+        entrance = null
+        character.style.removeProperty('transform')
+        character.classList.remove('is-entering', 'is-facing-left')
+        characterTurn = 0
+        spritePhase = 0
+        motionMode = 'walk'
+        gaitSettled = true
+        turnCharacter.style.backgroundPosition = '0% 0%'
+        turnCharacter.style.visibility = 'visible'
+        turnCharacter.style.opacity = '1'
+        motionCharacter.style.visibility = 'hidden'
+        runCharacter.style.visibility = 'hidden'
+        document.querySelector('.stage').classList.add('show-character', 'show-timeline', 'show-info')
+        try { sessionStorage.setItem('kaj-entrance-seen', '1') } catch { /* Storage may be unavailable. */ }
+        requestRender()
+      }
+
+      const renderEntrance = (now) => {
+        if (entrance.started === null) return
+        const elapsed = now - entrance.started
+        const progress = Math.min(1, elapsed / entrance.duration)
+        // Run at an even pace, with a short deceleration as the character arrives.
+        const travel = progress < 0.8 ? progress * 1.1
+          : 0.88 + 0.12 * (1 - Math.pow(1 - (progress - 0.8) / 0.2, 2))
+        character.style.transform = `translate3d(${entrance.startX * (1 - travel)}px, 0, 0)`
+        const arriving = elapsed - entrance.duration
+        if (progress < 1) {
+          runCharacter.style.visibility = 'visible'
+          turnCharacter.style.visibility = 'hidden'
+          runCharacter.style.backgroundPosition = `${spritePositions[Math.floor(elapsed / 75) % 8]} 56%`
+        } else {
+          runCharacter.style.visibility = 'hidden'
+          turnCharacter.style.visibility = 'visible'
+          const turnFrame = Math.max(0, 3 - Math.floor(arriving / 75))
+          turnCharacter.style.backgroundPosition = `${turnPositions[turnFrame]} 0%`
+        }
         const stage = document.querySelector('.stage')
-        if (reduceMotion) {
-          stage.classList.add('show-character', 'show-timeline', 'show-info')
+        // Finish turning and stand front-facing before revealing the surroundings.
+        if (arriving >= 420) stage.classList.add('show-timeline')
+        if (arriving >= 720) stage.classList.add('show-info')
+        if (arriving >= 1100) finishEntrance()
+        else requestRender()
+      }
+
+      const showEntrance = () => {
+        let seen = false
+        try { seen = sessionStorage.getItem('kaj-entrance-seen') === '1' } catch { /* Play normally without storage. */ }
+        if (reduceMotion || seen || timelineScrollY > 0) {
+          finishEntrance()
           return
         }
-        requestAnimationFrame(() => stage.classList.add('show-character'))
-        setTimeout(() => stage.classList.add('show-timeline'), 360)
-        setTimeout(() => stage.classList.add('show-info'), 780)
+        const opening = { started: null, startX: 0, duration: 0 }
+        entrance = opening
+        spritesReady.then((ready) => {
+          if (entrance !== opening) return
+          if (!ready) {
+            finishEntrance()
+            return
+          }
+          const anchorX = character.getBoundingClientRect().left
+          opening.startX = -anchorX - 100
+          opening.duration = Math.max(900, Math.min(1500, Math.abs(opening.startX) * 2.2))
+          opening.started = performance.now()
+          character.classList.add('is-entering')
+          character.classList.remove('is-facing-left')
+          character.style.transform = `translate3d(${opening.startX}px, 0, 0)`
+          motionCharacter.style.visibility = 'hidden'
+          turnCharacter.style.visibility = 'hidden'
+          runCharacter.style.visibility = 'visible'
+          document.querySelector('.stage').classList.add('show-character')
+          requestRender()
+        })
       }
 
       const handleResize = () => {
+        if (entrance) finishEntrance()
         spacing = getSpacing()
         targetProgress = getProgress()
         requestRender()
@@ -1035,6 +1112,7 @@
       }
 
       const handleScroll = () => {
+        if (entrance) finishEntrance()
         // Native events can be delayed during iOS touch gestures. The gesture owns
         // the position until release; only then do we sync the browser scroll.
         if (touchGesture || swipeMomentum || automaticWalk) return
