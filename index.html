@@ -409,6 +409,10 @@
       }
 
 
+      .contact-card .home-link {
+        font-weight: inherit;
+      }
+
       .progress {
         display: none;
         position: absolute;
@@ -468,13 +472,13 @@
     </style>
   </head>
   <body>
-    <main class="scroll-space">
+    <main class="scroll-space" id="now">
       <section class="stage" aria-label="Kaj Drobin career timeline">
         <h1 class="site-title">Kaj Drobin<span>Design and Product</span></h1>
         <p class="scroll-prompt">Scroll to walk back in time</p>
 
         <aside class="contact-card" aria-label="About and contact">
-          <p>Kaj Drobin<br>Design and Product</p>
+          <p><a class="home-link" href="#now">Kaj Drobin<br>Design and Product</a></p>
           <nav aria-label="Contact links">
             <a href="mailto:kaj@drob.in">Email</a>
             <a href="https://x.com/kajdro">X</a>
@@ -806,6 +810,10 @@
         journey.frame = requestAnimationFrame(step)
       }
 
+      document.querySelector('.home-link').addEventListener('click', (event) => {
+        event.preventDefault()
+        walkToYear(0)
+      })
       years.forEach((year, index) => year.addEventListener('click', () => walkToYear(index)))
       window.addEventListener('wheel', () => {
         if (automaticWalk || swipeMomentum) cancelAutomaticWalk()
