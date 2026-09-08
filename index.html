@@ -8,6 +8,14 @@
     <title>Kaj Drobin — Design and Product</title>
     <style>
       @font-face {
+        font-family: "Inter";
+        src: url("assets/inter-variable.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      @font-face {
         font-family: "Geist";
         src: url("assets/geist.woff2") format("woff2");
         font-style: normal;
@@ -45,7 +53,7 @@
         margin: 0;
         background: var(--background);
         color: var(--text);
-        font-family: "Helvetica Neue", "Inter", "Geist", sans-serif;
+        font-family: "Inter", "Helvetica Neue", "Geist", sans-serif;
         font-size: 1.125rem;
         font-weight: var(--regular);
         line-height: 1.45;
@@ -324,6 +332,11 @@
         font-weight: 450;
         text-decoration: none;
         white-space: nowrap;
+      }
+
+      .chapter-description a:hover,
+      .contact-card a:hover {
+        color: #a9adaf;
       }
 
       a:focus-visible {
