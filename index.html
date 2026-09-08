@@ -317,12 +317,6 @@
         letter-spacing: 0.01em;
       }
 
-      .chapter-description a {
-        color: inherit;
-        font-weight: 450;
-        text-decoration: none;
-      }
-
       a:focus-visible {
         outline: 1px solid currentColor;
         outline-offset: 4px;
@@ -490,7 +484,7 @@
           <p class="chapter-date" id="chapter-date">2024–Now</p>
           <h2 class="chapter-role" id="chapter-role">Co-Founder</h2>
           <p class="chapter-company" id="chapter-company">Stilla</p>
-          <p class="chapter-description" id="chapter-description">Building <a href="https://stilla.ai/">Stilla</a>, a multiplayer AI teammate, with the sharpest people I’ve worked with in the past 15 years.</p>
+          <p class="chapter-description" id="chapter-description">Building Stilla, a multiplayer AI teammate, with the sharpest people I’ve worked with in the past 15 years.</p>
         </article>
 
         <div class="progress" aria-hidden="true"><span id="progress"></span></div>
@@ -519,7 +513,7 @@
           date: '2024–Now',
           role: 'Co-Founder',
           company: 'Stilla',
-          description: 'Building <a href="https://stilla.ai/">Stilla</a>, a multiplayer AI teammate, with the sharpest people I’ve worked with in the past 15 years.'
+          description: 'Building Stilla, a multiplayer AI teammate, with the sharpest people I’ve worked with in the past 15 years.'
         },
         {
           from: 2,
@@ -527,7 +521,7 @@
           date: '2018–2024',
           role: 'Director of Product',
           company: 'Shopify',
-          description: 'Co-created <a href="https://shop.app/">Shop</a> and <a href="https://shop.app/shop-pay">Shop Pay</a> and led their early product and design.'
+          description: 'Co-created Shop and Shop Pay and led their early product and design.'
         },
         {
           from: 9,
@@ -600,7 +594,7 @@
           date.textContent = content.date
           role.textContent = content.role
           company.textContent = content.company
-          description.innerHTML = content.description
+          description.textContent = content.description
           chapter.style.opacity = '1'
         }
         if (reduceMotion) {
