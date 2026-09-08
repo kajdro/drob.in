@@ -169,6 +169,7 @@
       }
 
       .character-motion {
+        left: calc(var(--character-height) * -0.02);
         visibility: hidden;
         width: calc(var(--character-height) * 264 / 525);
         height: calc(var(--character-height) * 541 / 525);
@@ -179,11 +180,15 @@
         opacity: 0;
       }
 
-      .character-motion:not(.is-running) {
+      .character-motion {
         filter: brightness(0.9) saturate(0.88) contrast(1.04);
       }
 
-      .character-motion.is-running {
+      .character-run {
+        visibility: hidden;
+        background-image: url("assets/kaj-run-refined.png");
+        background-position: 0% 56%;
+        left: calc(var(--character-height) * -0.09);
         /* Eight 271.5px cells; crop the sheet's top/bottom padding in CSS. */
         width: calc(var(--character-height) * 271.5 / 424);
         height: var(--character-height);
@@ -480,6 +485,7 @@
         <div class="character" role="img" aria-label="8-bit character of Kaj Drobin">
           <span class="character-sprite character-turn"></span>
           <span class="character-sprite character-motion"></span>
+          <span class="character-sprite character-run"></span>
         </div>
 
         <div class="timeline-window" aria-label="Choose a year">
@@ -524,6 +530,7 @@
       const character = document.querySelector('.character')
       const turnCharacter = document.querySelector('.character-turn')
       const motionCharacter = document.querySelector('.character-motion')
+      const runCharacter = document.querySelector('.character-run')
       const chapter = document.querySelector('#chapter')
       const date = document.querySelector('#chapter-date')
       const role = document.querySelector('#chapter-role')
@@ -582,6 +589,9 @@
       let lastVisualIndex = 0
       let spritePhase = 0
       let motionMode = 'walk'
+      let gaitSettled = true
+      let gaitChangedAt = -Infinity
+      let runRequestedAt = -Infinity
       let runUntil = 0
       let lastCharacterMotionTime = -Infinity
       let characterTurn = 0
@@ -592,8 +602,6 @@
       const TURN_SCROLL_DISTANCE = 140
       const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
       const turnPositions = ['0%', '33.333%', '66.667%', '100%']
-      const walkSprite = 'url("assets/kaj-walk-clean.png")'
-      const runSprite = 'url("assets/kaj-run-refined.png")'
 
       ;['assets/kaj-turn-right.png', 'assets/kaj-walk-clean.png', 'assets/kaj-run-refined.png'].forEach((source) => {
         const image = new Image()
@@ -642,12 +650,6 @@
           : 0
       }
 
-      const setMotionMode = (mode) => {
-        if (mode === motionMode) return
-        motionMode = mode
-        motionCharacter.style.backgroundImage = motionMode === 'run' ? runSprite : walkSprite
-        motionCharacter.classList.toggle('is-running', motionMode === 'run')
-      }
 
       const render = (now) => {
         ticking = false
@@ -687,16 +689,51 @@
         if (motionActive) lastCharacterMotionTime = now
         // Hold the side pose through touch-event gaps and between quick swipes.
         const isMoving = !reduceMotion && (motionActive || now - lastCharacterMotionTime < 420)
-        // Pose follows gesture state, never an asynchronously updated scroll offset.
+        const visualDistance = Math.abs(exactIndex - lastVisualIndex) * spacing
+        if (automaticWalk || now < runUntil) runRequestedAt = now
+        const requestedGait = now - runRequestedAt < 600 ? 'run' : 'walk'
+        if (isMoving) gaitSettled = false
+
+        if (!reduceMotion && characterTurn === 1) {
+          const finishingStep = !isMoving && !gaitSettled
+          const previousPhase = spritePhase
+          const stride = motionMode === 'run' ? 18 : 42
+          const advance = finishingStep ? deltaTime / 90
+            : Math.min(visualDistance / stride, deltaTime / (motionMode === 'run' ? 75 : 90))
+          spritePhase += advance
+          const planted = Math.floor(spritePhase / 4) > Math.floor(previousPhase / 4)
+            || spritePhase % 4 < 0.001
+          if (finishingStep && planted) {
+            // Land the foot before swapping to the side-standing turn pose.
+            spritePhase = 0
+            motionMode = 'walk'
+            gaitSettled = true
+          } else if (isMoving && requestedGait !== motionMode && planted && now - gaitChangedAt >= 700) {
+            motionMode = requestedGait
+            gaitChangedAt = now
+            spritePhase = Math.floor(spritePhase / 4) * 4
+          }
+        } else if (characterTurn === 0) {
+          spritePhase = 0
+          motionMode = 'walk'
+          gaitSettled = !isMoving
+        }
+
+        // Complete a stride before returning through the turning frames.
+        const keepSidePose = isMoving || (!gaitSettled && characterTurn === 1)
         characterTurn = reduceMotion ? 0 : Math.max(0, Math.min(1,
-          characterTurn + (isMoving ? deltaTime / 100 : -deltaTime / 160)))
+          characterTurn + (keepSidePose ? deltaTime / 120 : -deltaTime / 200)))
         const turnFrame = Math.min(3, Math.round(characterTurn * 3))
         const showMotion = characterTurn === 1
         character.classList.toggle('is-facing-left', characterTurn > 0 && travelDirection < 0)
         turnCharacter.style.backgroundPosition = `${turnPositions[turnFrame]} 0%`
-        // A single visible sprite avoids ghosting between overlapping silhouettes.
+        const frame = Math.floor(spritePhase) % 8
+        motionCharacter.style.backgroundPosition = `${spritePositions[frame]} 0%`
+        runCharacter.style.backgroundPosition = `${spritePositions[frame]} 56%`
+        // Separate, preloaded layers never change their image, size, or filter mid-frame.
         turnCharacter.style.visibility = showMotion ? 'hidden' : 'visible'
-        motionCharacter.style.visibility = showMotion ? 'visible' : 'hidden'
+        motionCharacter.style.visibility = showMotion && motionMode === 'walk' ? 'visible' : 'hidden'
+        runCharacter.style.visibility = showMotion && motionMode === 'run' ? 'visible' : 'hidden'
         turnCharacter.style.opacity = '1'
         motionCharacter.style.opacity = '1'
 
@@ -717,18 +754,6 @@
 
         const nextChapter = chapters.findIndex((item) => yearIndex >= item.from && yearIndex <= item.to)
         if (nextChapter >= 0) setChapter(nextChapter)
-
-        if (!reduceMotion) {
-          setMotionMode(automaticWalk || now < runUntil ? 'run' : 'walk')
-          const visualDistance = Math.abs(exactIndex - lastVisualIndex) * spacing
-
-          if (visualDistance > 0.02) {
-            // Keep rapid gestures from skipping whole poses in the run cycle.
-            spritePhase += Math.min(visualDistance / (motionMode === 'run' ? 18 : 42), deltaTime / (motionMode === 'run' ? 75 : 90))
-            const frame = Math.floor(spritePhase) % 8
-            motionCharacter.style.backgroundPosition = `${spritePositions[frame]} var(--sprite-y, 0%)`
-          }
-        }
 
         lastVisualIndex = exactIndex
         lastFrameTime = now
