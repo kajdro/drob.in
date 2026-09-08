@@ -1116,7 +1116,7 @@
         targetProgress = getProgress()
         if (deltaTime > 80) fastInputSamples = 0
         const touchInput = touchGesture !== null || swipeMomentum !== null
-        const runThreshold = touchInput ? 5 : 2.4
+        const runThreshold = touchInput ? 5.75 : 2.8
         const requiredSamples = touchInput ? 3 : 2
         fastInputSamples = velocity > runThreshold ? fastInputSamples + 1 : Math.max(0, fastInputSamples - 1)
         if (!automaticWalk && fastInputSamples >= requiredSamples) runUntil = now + (touchInput ? 260 : 450)
