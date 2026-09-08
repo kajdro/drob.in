@@ -719,7 +719,7 @@
         if (nextChapter >= 0) setChapter(nextChapter)
 
         if (!reduceMotion) {
-          setMotionMode(!automaticWalk && now < runUntil ? 'run' : 'walk')
+          setMotionMode(automaticWalk || now < runUntil ? 'run' : 'walk')
           const visualDistance = Math.abs(exactIndex - lastVisualIndex) * spacing
 
           if (visualDistance > 0.02) {
@@ -764,14 +764,17 @@
           return
         }
         const distance = Math.abs(index - displayedProgress * (years.length - 1))
-        const duration = Math.min(6000, Math.max(900, distance * 1000))
+        const duration = Math.min(2000, Math.max(550, distance * 200))
         const journey = { frame: 0, started: performance.now(), index }
         automaticWalk = journey
+        requestRender()
         const step = (now) => {
           if (automaticWalk !== journey) return
           const progress = Math.min(1, (now - journey.started) / duration)
           const eased = progress * progress * (3 - 2 * progress)
           window.scrollTo(0, startY + (endY - startY) * eased)
+          runUntil = now + 450
+          handleScroll()
           if (progress < 1) journey.frame = requestAnimationFrame(step)
           else automaticWalk = null
         }
