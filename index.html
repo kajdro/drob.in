@@ -182,9 +182,12 @@
       }
 
       .character-motion.is-running {
-        width: calc(var(--character-height) * 253 / 367);
-        height: calc(var(--character-height) * 383 / 367);
-        bottom: calc(0.6rem - var(--character-height) * 8 / 367);
+        /* Eight 271.5px cells; crop the sheet's top/bottom padding in CSS. */
+        width: calc(var(--character-height) * 271.5 / 424);
+        height: var(--character-height);
+        bottom: 0.6rem;
+        background-size: 800% auto;
+        --sprite-y: 56%;
       }
 
       .timeline-window {
@@ -586,9 +589,9 @@
       const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
       const turnPositions = ['0%', '33.333%', '66.667%', '100%']
       const walkSprite = 'url("assets/kaj-walk-clean.png")'
-      const runSprite = 'url("assets/kaj-run-right.png")'
+      const runSprite = 'url("assets/kaj-run-refined.png")'
 
-      ;['assets/kaj-turn-right.png', 'assets/kaj-walk-clean.png', 'assets/kaj-run-right.png'].forEach((source) => {
+      ;['assets/kaj-turn-right.png', 'assets/kaj-walk-clean.png', 'assets/kaj-run-refined.png'].forEach((source) => {
         const image = new Image()
         image.src = source
       })
@@ -708,9 +711,10 @@
           const visualDistance = Math.abs(exactIndex - lastVisualIndex) * spacing
 
           if (visualDistance > 0.02) {
-            spritePhase += visualDistance / (motionMode === 'run' ? 18 : 42)
+            // Keep rapid gestures from skipping whole poses in the run cycle.
+            spritePhase += Math.min(visualDistance / (motionMode === 'run' ? 18 : 42), deltaTime / (motionMode === 'run' ? 75 : 90))
             const frame = Math.floor(spritePhase) % 8
-            motionCharacter.style.backgroundPosition = `${spritePositions[frame]} 0%`
+            motionCharacter.style.backgroundPosition = `${spritePositions[frame]} var(--sprite-y, 0%)`
           }
         }
 
