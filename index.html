@@ -76,6 +76,7 @@
       }
 
       .stage {
+        touch-action: pinch-zoom;
         position: sticky;
         top: 0;
         height: 100vh;
@@ -148,7 +149,7 @@
         image-rendering: pixelated;
         transform: translate3d(0, 0, 0);
         transform-origin: 50% 100%;
-        transition: opacity 130ms ease-in-out;
+        transition: none;
         will-change: opacity;
       }
 
@@ -168,6 +169,7 @@
       }
 
       .character-motion {
+        visibility: hidden;
         width: calc(var(--character-height) * 264 / 525);
         height: calc(var(--character-height) * 541 / 525);
         bottom: calc(0.6rem - var(--character-height) * 8 / 525);
@@ -582,6 +584,7 @@
       let motionMode = 'walk'
       let runUntil = 0
       let lastCharacterMotionTime = -Infinity
+      let characterTurn = 0
       let fastInputSamples = 0
       let automaticWalk = null
       let travelDirection = 1
@@ -679,18 +682,23 @@
         progressBar.style.transform = `scaleX(${displayedProgress})`
         prompt.classList.toggle('is-hidden', displayedProgress > 0.025)
 
-        const turnProgress = Math.min(1, Math.max(0, window.scrollY / TURN_SCROLL_DISTANCE))
         const inputStillActive = window.scrollY > 0 && now - lastInputTime < 160
-        const motionActive = automaticWalk !== null || swipeMomentum !== null || Boolean(touchGesture?.axis) || inputStillActive || Math.abs(progressVelocity) > 0.00002 || Math.abs(displayedProgress - targetProgress) > 0.000005
+        const motionActive = automaticWalk !== null || swipeMomentum !== null || Boolean(touchGesture && (touchGesture.axis || characterTurn > 0)) || inputStillActive || Math.abs(progressVelocity) > 0.00002 || Math.abs(displayedProgress - targetProgress) > 0.000005
         if (motionActive) lastCharacterMotionTime = now
         // Hold the side pose through touch-event gaps and between quick swipes.
         const isMoving = !reduceMotion && (motionActive || now - lastCharacterMotionTime < 420)
-        const turnFrame = !isMoving || turnProgress === 0 ? 0 : Math.min(3, Math.ceil(turnProgress * 3))
-        const motionMix = isMoving ? Math.min(1, Math.max(0, (turnProgress - 0.82) / 0.18)) : 0
-        character.classList.toggle('is-facing-left', isMoving && travelDirection < 0)
+        // Pose follows gesture state, never an asynchronously updated scroll offset.
+        characterTurn = reduceMotion ? 0 : Math.max(0, Math.min(1,
+          characterTurn + (isMoving ? deltaTime / 100 : -deltaTime / 160)))
+        const turnFrame = Math.min(3, Math.round(characterTurn * 3))
+        const showMotion = characterTurn === 1
+        character.classList.toggle('is-facing-left', characterTurn > 0 && travelDirection < 0)
         turnCharacter.style.backgroundPosition = `${turnPositions[turnFrame]} 0%`
-        turnCharacter.style.opacity = `${1 - motionMix}`
-        motionCharacter.style.opacity = `${motionMix}`
+        // A single visible sprite avoids ghosting between overlapping silhouettes.
+        turnCharacter.style.visibility = showMotion ? 'hidden' : 'visible'
+        motionCharacter.style.visibility = showMotion ? 'visible' : 'hidden'
+        turnCharacter.style.opacity = '1'
+        motionCharacter.style.opacity = '1'
 
         // Pin the current label until the next one pushes it off the anchor.
         // These offsets share the timeline spring, including when scrolling back.
@@ -725,7 +733,7 @@
         lastVisualIndex = exactIndex
         lastFrameTime = now
 
-        if (displayedProgress !== targetProgress || progressVelocity !== 0 || inputStillActive || automaticWalk || isMoving) requestRender()
+        if (displayedProgress !== targetProgress || progressVelocity !== 0 || inputStillActive || automaticWalk || isMoving || characterTurn > 0) requestRender()
       }
 
       const requestRender = () => {
@@ -789,6 +797,7 @@
           const maxScroll = document.documentElement.scrollHeight - window.innerHeight
           coast.position = Math.max(0, Math.min(maxScroll, coast.position))
           window.scrollTo(0, coast.position)
+          handleScroll()
           if (Math.abs(coast.velocity) < 0.02 || coast.position === 0 || coast.position === maxScroll) {
             swipeMomentum = null
           } else {
@@ -830,6 +839,8 @@
         suppressSwipeClickUntil = now + 500
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight
         window.scrollTo(0, Math.max(0, Math.min(maxScroll, touchGesture.scrollY + distance)))
+        handleScroll()
+        requestRender()
       }, { passive: false })
       const endTouchGesture = (event) => {
         if (touchGesture?.axis) {
@@ -889,6 +900,11 @@
       const handleScroll = () => {
         const now = performance.now()
         const deltaY = window.scrollY - lastInputY
+        if (deltaY === 0) {
+          targetProgress = getProgress()
+          requestRender()
+          return
+        }
         const deltaTime = Math.max(16, now - lastInputTime)
         const velocity = Math.abs(deltaY) / deltaTime
         if (deltaY !== 0) travelDirection = Math.sign(deltaY)
