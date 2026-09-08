@@ -1,98 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Kaj Drobin — Design & Product in Stockholm.">
+    <meta name="theme-color" content="#080b10">
+    <title>Kaj Drobin — Design & Product</title>
+    <style>
+      @font-face {
+        font-family: "Geist";
+        src: url("assets/geist.woff2") format("woff2");
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+      }
 
-<!DOCTYPE html>
-<html>
-<head>
-<title>Hi! I'm Kaj Drobin.</title>
-<link href='http://fonts.googleapis.com/css?family=Playfair+Display:400italic' rel='stylesheet' type='text/css'>
-<link href='http://fonts.googleapis.com/css?family=Inconsolata:400,700' rel='stylesheet' type='text/css'>
-<style>
+      :root {
+        color-scheme: dark;
+        --background: #080b10;
+        --text: #f4f6f8;
+        --secondary: #858d99;
+        --body-size: 1.125rem;
+        --detail-size: 0.8125rem;
+        --regular: 450;
+        --medium: 550;
+      }
 
+      * {
+        box-sizing: border-box;
+      }
 
-	body {
-		background-color: #fff;
-		color: white;
-		margin: 0;
-		padding: 0;
-		-webkit-font-smoothing: antialiased;
-		font-family: 'Inconsolata', sans-serif;
-	}
+      html {
+        background: var(--background);
+      }
 
-	#content {
-		width: 904px;
-		height: 600px;
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		margin: -300px 0 0 -437px;
-		-webkit-animation: fadein 600ms ease-in-out;
-	}
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--text);
+        font-family: "Geist", sans-serif;
+        font-size: var(--body-size);
+        font-weight: var(--regular);
+        line-height: 1.55;
+        letter-spacing: -0.018em;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
 
-	.smile {
-		display: none;
-	}
+      main {
+        width: min(100% - 3rem, 43rem);
+        margin: 0 auto;
+        padding: clamp(4rem, 13vh, 8.5rem) 0 5rem;
+      }
 
-	#content:hover > .smile{
-		display: block;
-	}
+      header,
+      section {
+        display: grid;
+        grid-template-columns: minmax(7.5rem, 0.33fr) minmax(0, 1fr);
+        column-gap: 2rem;
+      }
 
-	img {
-			margin: 0;
-			padding: 0;
-			position: absolute;
-	}
+      header {
+        margin-bottom: clamp(5rem, 13vh, 9rem);
+      }
 
-	.info {
-		z-index: 999;
-		color: #222;
-		position: absolute;
-		text-align: left;
-		right: 0;
-		bottom: 70px;
-		width: 470px;
-	}
+      h1,
+      p {
+        margin: 0;
+      }
 
-	h1 {
-		font-size: 72px;
-		margin-bottom: 10px;
-		font-family: 'Playfair Display', serif;
-		line-height: 130%;
-		font-style: italic;
-	}
+      h1,
+      a,
+      .role,
+      .position {
+        font-weight: var(--medium);
+      }
 
-	p { 
-		font-size: 18px;
-		line-height: 150%;
-		margin-top: 20px;
-	}
+      h1 {
+        font-size: var(--body-size);
+        line-height: inherit;
+      }
 
-	a, a:active, a:visited {
-		font-weight: bold;
-		color: #222;
-		text-decoration: none;	
-	}
+      .role,
+      .label,
+      time,
+      .company {
+        color: var(--secondary);
+      }
 
-	a:hover {
-		color: #11b964;
-	}
+      .label,
+      time,
+      .company {
+        font-size: var(--detail-size);
+        letter-spacing: -0.006em;
+      }
 
+      .bio {
+        margin-bottom: clamp(5rem, 12vh, 8rem);
+      }
 
+      .copy {
+        display: grid;
+        gap: 1.5rem;
+      }
 
-</style>
-</head>
+      a {
+        color: var(--text);
+        text-decoration-color: var(--secondary);
+        text-decoration-thickness: 0.06em;
+        text-underline-offset: 0.18em;
+      }
 
-<body>
-<div id="content">
-	<div class="info">
-		<h1>Oh hi!</h1>
+      a:hover,
+      a:focus-visible {
+        text-decoration-color: var(--text);
+      }
 
-		<p>My name is Kaj Drobin and I'm a designer and co-founder of <a class="tictail" href="http://tictail.com/" target="_blank">Tictail</a>. Before that I was Lead Digital Art Director and Partner at <a class="iw" href="http://www.identityworks.se/" target="_blank">Identity Works</a>, where I worked with clients like Spotify, Pocket Shop, Rodebjer and TV 4. I live in Stockholm, Sweden.</p>
+      a:focus-visible {
+        outline: 1px solid var(--text);
+        outline-offset: 0.2rem;
+      }
 
-		<p>I have an <a href="mailto:kaj@drob.in">email</a>, <a class="twitter" href="http://twitter.com/kajdro" target="_blank">Twitter</a>, <a class="tumblr" href="http://kajdro.tumblr.com" target="_blank">Tumblr</a> and you can see some of my work on my shared <a class="cargo" href="http://cargocollective.com/kajandcarl" target="_blank">Cargo</a>.
-		</p>
+      .timeline {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
 
-</div>
-		<img src="img/me.png" />
-		<img class="smile" src="img/me2.png" />
-</div>
-</body>
+      .timeline li {
+        display: grid;
+        grid-template-columns: 6.5rem minmax(0, 1fr);
+        column-gap: 1rem;
+        padding: 0.85rem 0;
+        border-top: 1px solid color-mix(in srgb, var(--secondary) 28%, transparent);
+      }
+
+      .timeline li:last-child {
+        border-bottom: 1px solid color-mix(in srgb, var(--secondary) 28%, transparent);
+      }
+
+      time {
+        padding-top: 0.18rem;
+      }
+
+      .position {
+        display: block;
+        font-size: var(--body-size);
+        line-height: 1.4;
+      }
+
+      .company {
+        display: block;
+        margin-top: 0.08rem;
+      }
+
+      @media (max-width: 38rem) {
+        main {
+          width: min(100% - 2rem, 43rem);
+          padding-top: 3rem;
+        }
+
+        header,
+        section {
+          grid-template-columns: 1fr;
+        }
+
+        .role,
+        .copy,
+        .timeline {
+          margin-top: 1.5rem;
+        }
+
+        .timeline li {
+          grid-template-columns: 5.5rem minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Kaj Drobin</h1>
+        <p class="role">Design &amp; Product</p>
+      </header>
+
+      <section class="bio" aria-labelledby="about-label">
+        <p class="label" id="about-label">About</p>
+        <div class="copy">
+          <p>Hi! I was born in Stockholm and live here with my family.</p>
+          <p>Previously, I led product for <a href="https://shop.app/">Shop</a> at <a href="https://www.shopify.com/">Shopify</a>, where I joined through the acquisition of Tictail and helped create Shopify&rsquo;s consumer offering, which became Shop and Shop Pay. Before that, I co-founded Tictail and led design and product until its acquisition by Shopify. Earlier, I was Digital Art Director and Partner at Identity Works, working with international clients on projects including Spotify and Shopify&rsquo;s first launch film, U.S. launch, global brand, and homepage.</p>
+        </div>
+      </section>
+
+      <section aria-labelledby="experience-label">
+        <p class="label" id="experience-label">Experience</p>
+        <ol class="timeline">
+          <li>
+            <time datetime="2024">2024&ndash;Now</time>
+            <div>
+              <span class="position">Co-founder</span>
+              <span class="company">Stilla</span>
+            </div>
+          </li>
+          <li>
+            <time datetime="2018/2024">2018&ndash;2024</time>
+            <div>
+              <span class="position">Director of Product, Shop</span>
+              <span class="company">Shopify</span>
+            </div>
+          </li>
+          <li>
+            <time datetime="2011/2018">2011&ndash;2018</time>
+            <div>
+              <span class="position">CPO &amp; Co-founder</span>
+              <span class="company">Tictail</span>
+            </div>
+          </li>
+          <li>
+            <time datetime="2009/2011">2009&ndash;2011</time>
+            <div>
+              <span class="position">Digital Art Director &amp; Partner</span>
+              <span class="company">Identity Works</span>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </main>
+  </body>
 </html>
