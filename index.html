@@ -319,14 +319,13 @@
 
       .chapter-description a {
         color: inherit;
-        text-decoration: underline;
-        text-decoration-color: rgba(244, 246, 248, 0.35);
-        text-underline-offset: 0.18em;
+        font-weight: 450;
+        text-decoration: none;
       }
 
-      .chapter-description a:hover,
-      .chapter-description a:focus-visible {
-        text-decoration-color: currentColor;
+      a:focus-visible {
+        outline: 1px solid currentColor;
+        outline-offset: 4px;
       }
 
       .contact-card {
@@ -379,14 +378,10 @@
         display: block;
         width: max-content;
         color: var(--secondary);
+        font-weight: 450;
         text-decoration: none;
-        text-underline-offset: 0.18em;
       }
 
-      .contact-card a:hover,
-      .contact-card a:focus-visible {
-        text-decoration: underline;
-      }
 
       .progress {
         display: none;
