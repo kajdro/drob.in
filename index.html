@@ -73,6 +73,7 @@
 
       .scroll-space {
         height: 1400vh;
+        height: 1400svh;
       }
 
       .stage {
@@ -587,7 +588,9 @@
       let targetProgress = 0
       let displayedProgress = 0
       let progressVelocity = 0
-      let lastInputY = window.scrollY
+      let timelineScrollY = window.scrollY
+      let lastInputY = timelineScrollY
+      let directionDistance = 0
       let lastInputTime = performance.now()
       let lastFrameTime = performance.now()
       let lastVisualIndex = 0
@@ -650,7 +653,7 @@
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight
         const timelineDistance = maxScroll - TURN_SCROLL_DISTANCE
         return timelineDistance > 0
-          ? Math.min(1, Math.max(0, (window.scrollY - TURN_SCROLL_DISTANCE) / timelineDistance))
+          ? Math.min(1, Math.max(0, (timelineScrollY - TURN_SCROLL_DISTANCE) / timelineDistance))
           : 0
       }
 
@@ -688,12 +691,19 @@
         progressBar.style.transform = `scaleX(${displayedProgress})`
         prompt.classList.toggle('is-hidden', displayedProgress > 0.025)
 
-        const inputStillActive = window.scrollY > 0 && now - lastInputTime < 160
+        const inputStillActive = timelineScrollY > 0 && now - lastInputTime < 160
         const motionActive = automaticWalk !== null || swipeMomentum !== null || Boolean(touchGesture && (touchGesture.axis || characterTurn > 0)) || inputStillActive || Math.abs(progressVelocity) > 0.00002 || Math.abs(displayedProgress - targetProgress) > 0.000005
         if (motionActive) lastCharacterMotionTime = now
         // Hold the side pose through touch-event gaps and between quick swipes.
         const isMoving = !reduceMotion && (motionActive || now - lastCharacterMotionTime < 420)
-        const visualDistance = Math.abs(exactIndex - lastVisualIndex) * spacing
+        const visualDelta = (exactIndex - lastVisualIndex) * spacing
+        const visualDistance = Math.abs(visualDelta)
+        // Face the direction of visible travel; ignore tiny spring/finger corrections.
+        if (Math.abs(visualDelta) > 0.01) {
+          directionDistance = Math.sign(visualDelta) === Math.sign(directionDistance)
+            ? directionDistance + visualDelta : visualDelta
+          if (Math.abs(directionDistance) >= 3) travelDirection = Math.sign(directionDistance)
+        }
         if (automaticWalk || now < runUntil) runRequestedAt = now
         const requestedGait = now - runRequestedAt < 600 ? 'run' : 'walk'
         if (isMoving) gaitSettled = false
@@ -773,7 +783,10 @@
 
       let swipeMomentum = null
       const cancelAutomaticWalk = () => {
-        if (swipeMomentum) cancelAnimationFrame(swipeMomentum.frame)
+        if (swipeMomentum) {
+          cancelAnimationFrame(swipeMomentum.frame)
+          window.scrollTo(0, timelineScrollY)
+        }
         swipeMomentum = null
         if (automaticWalk) cancelAnimationFrame(automaticWalk.frame)
         automaticWalk = null
@@ -783,13 +796,13 @@
 
       const walkToYear = (index) => {
         cancelAutomaticWalk()
-        const startY = window.scrollY
-        travelDirection = index >= displayedProgress * (years.length - 1) ? 1 : -1
+        const startY = timelineScrollY
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight
         const endY = index === 0 ? 0 : Math.min(maxScroll,
           Math.ceil(TURN_SCROLL_DISTANCE + index / (years.length - 1) * (maxScroll - TURN_SCROLL_DISTANCE)))
         if (reduceMotion) {
           window.scrollTo(0, endY)
+          updateScrollPosition(endY)
           return
         }
         const distance = Math.abs(index - displayedProgress * (years.length - 1))
@@ -803,7 +816,7 @@
           const eased = progress * progress * (3 - 2 * progress)
           window.scrollTo(0, startY + (endY - startY) * eased)
           runUntil = now + 450
-          handleScroll()
+          updateScrollPosition(startY + (endY - startY) * eased)
           if (progress < 1) journey.frame = requestAnimationFrame(step)
           else automaticWalk = null
         }
@@ -823,7 +836,7 @@
       // Horizontal swipes cover more ground; both axes share release physics.
       const coastAfterSwipe = (velocity) => {
         if (reduceMotion || Math.abs(velocity) < 0.08) return
-        const coast = { frame: 0, time: performance.now(), position: window.scrollY, velocity }
+        const coast = { frame: 0, time: performance.now(), position: timelineScrollY, velocity }
         swipeMomentum = coast
         const step = (now) => {
           if (swipeMomentum !== coast) return
@@ -834,10 +847,10 @@
           coast.velocity *= decay
           const maxScroll = document.documentElement.scrollHeight - window.innerHeight
           coast.position = Math.max(0, Math.min(maxScroll, coast.position))
-          window.scrollTo(0, coast.position)
-          handleScroll()
+          updateScrollPosition(coast.position)
           if (Math.abs(coast.velocity) < 0.02 || coast.position === 0 || coast.position === maxScroll) {
             swipeMomentum = null
+            window.scrollTo(0, timelineScrollY)
           } else {
             coast.frame = requestAnimationFrame(step)
           }
@@ -849,13 +862,14 @@
         suppressSwipeClickUntil = 0
         const touch = event.touches[0]
         touchGesture = event.touches.length === 1
-          ? { id: touch.identifier, x: touch.clientX, y: touch.clientY, scrollY: window.scrollY,
+          ? { id: touch.identifier, x: touch.clientX, y: touch.clientY, scrollY: timelineScrollY,
               axis: null, distance: 0, time: performance.now(), velocity: 0 }
           : null
       }, { passive: true })
       window.addEventListener('touchmove', (event) => {
         if (!touchGesture || event.touches.length !== 1) {
           touchGesture = null
+          window.scrollTo(0, timelineScrollY)
           return
         }
         const touch = event.touches[0]
@@ -876,8 +890,7 @@
         touchGesture.time = now
         suppressSwipeClickUntil = now + 500
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight
-        window.scrollTo(0, Math.max(0, Math.min(maxScroll, touchGesture.scrollY + distance)))
-        handleScroll()
+        updateScrollPosition(Math.max(0, Math.min(maxScroll, touchGesture.scrollY + distance)))
         requestRender()
       }, { passive: false })
       const endTouchGesture = (event) => {
@@ -890,6 +903,8 @@
           }
         }
         touchGesture = null
+        if (!swipeMomentum) window.scrollTo(0, timelineScrollY)
+        requestRender()
       }
       window.addEventListener('touchend', endTouchGesture, { passive: true })
       window.addEventListener('touchcancel', endTouchGesture, { passive: true })
@@ -935,9 +950,10 @@
         requestRender()
       }
 
-      const handleScroll = () => {
+      const updateScrollPosition = (position) => {
+        timelineScrollY = position
         const now = performance.now()
-        const deltaY = window.scrollY - lastInputY
+        const deltaY = timelineScrollY - lastInputY
         if (deltaY === 0) {
           targetProgress = getProgress()
           requestRender()
@@ -945,7 +961,6 @@
         }
         const deltaTime = Math.max(16, now - lastInputTime)
         const velocity = Math.abs(deltaY) / deltaTime
-        if (deltaY !== 0) travelDirection = Math.sign(deltaY)
 
         if (!ticking) lastFrameTime = now
         targetProgress = getProgress()
@@ -955,9 +970,16 @@
         const requiredSamples = touchInput ? 3 : 2
         fastInputSamples = velocity > runThreshold ? fastInputSamples + 1 : Math.max(0, fastInputSamples - 1)
         if (!automaticWalk && fastInputSamples >= requiredSamples) runUntil = now + (touchInput ? 260 : 450)
-        lastInputY = window.scrollY
+        lastInputY = timelineScrollY
         lastInputTime = now
         requestRender()
+      }
+
+      const handleScroll = () => {
+        // Native events can be delayed during iOS touch gestures. The gesture owns
+        // the position until release; only then do we sync the browser scroll.
+        if (touchGesture || swipeMomentum || automaticWalk) return
+        updateScrollPosition(window.scrollY)
       }
 
       spacing = getSpacing()
