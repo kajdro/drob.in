@@ -214,7 +214,7 @@
         left: calc(var(--index) * var(--spacing));
         width: 5rem;
         transform: none;
-        color: var(--secondary);
+        color: var(--text);
         text-align: left;
         font-size: 0.6875rem;
         line-height: 1rem;
@@ -603,7 +603,7 @@
         }
 
         const exactIndex = displayedProgress * (years.length - 1)
-        const yearIndex = Math.round(exactIndex)
+        const yearIndex = Math.min(years.length - 1, Math.floor(exactIndex + 0.000001))
         track.style.transform = `translate3d(${-exactIndex * spacing}px, 0, 0)`
         progressBar.style.transform = `scaleX(${displayedProgress})`
         prompt.classList.toggle('is-hidden', displayedProgress > 0.025)
@@ -615,9 +615,19 @@
         turnCharacter.style.opacity = `${1 - motionMix}`
         motionCharacter.style.opacity = `${motionMix}`
 
+        // Pin the current label until the next one pushes it off the anchor.
+        // These offsets share the timeline spring, including when scrolling back.
+        const handoffWidth = 48
+        const nextDistance = (yearIndex + 1 - exactIndex) * spacing
+        const handoff = Math.max(0, Math.min(1, 1 - nextDistance / handoffWidth))
         years.forEach((year, index) => {
-          const proximity = Math.max(0, 1 - Math.abs(index - exactIndex))
-          year.style.opacity = `${0.3 + proximity * 0.7}`
+          const naturalX = (index - exactIndex) * spacing
+          const isCurrent = index === yearIndex
+          const pinnedX = Math.min(0, nextDistance - handoffWidth)
+          const offset = isCurrent ? pinnedX - naturalX : index < yearIndex ? spacing - handoffWidth : 0
+          year.style.transform = `translate3d(${offset}px, 0, 0)`
+          const emphasis = isCurrent ? 1 - handoff : index === yearIndex + 1 ? handoff : 0
+          year.style.opacity = `${0.18 + emphasis * 0.52}`
         })
 
         const nextChapter = chapters.findIndex((item) => yearIndex >= item.from && yearIndex <= item.to)
