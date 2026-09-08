@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Kaj Drobin — Design & Product in Stockholm.">
-    <meta name="theme-color" content="#080b10">
+    <meta name="theme-color" content="#171b1c">
     <title>Kaj Drobin — Design & Product</title>
     <style>
       @font-face {
@@ -17,12 +17,15 @@
 
       :root {
         color-scheme: dark;
-        --background: #080b10;
+        --background: #171b1c;
         --text: #f4f6f8;
-        --secondary: #858d99;
-        --line: rgba(133, 141, 153, 0.18);
-        --character-height: clamp(3.8rem, 6.04vw, 4.53rem);
-        --spacing: clamp(11rem, 22vw, 20rem);
+        --secondary: rgba(244, 246, 248, 0.3);
+        --line: rgba(255, 255, 255, 0.15);
+        --character-height: clamp(3.25rem, 4.2vw, 4.25rem);
+        --content-width: min(clamp(18rem, 23.3vw, 23.5rem), calc(100vw - 3.5rem), calc(61.8svh - 2.163rem));
+        --timeline-origin: calc(50% - var(--content-width) / 2);
+        --timeline-y: 50%;
+        --spacing: clamp(11rem, 24.5vw, 22rem);
         --regular: 450;
         --medium: 550;
       }
@@ -58,7 +61,7 @@
       }
 
       .scroll-space {
-        height: 2200vh;
+        height: 1400vh;
       }
 
       .stage {
@@ -75,6 +78,7 @@
         z-index: 5;
         top: clamp(1.5rem, 4vw, 2.5rem);
         left: clamp(1.5rem, 4vw, 3.5rem);
+        display: none;
         margin: 0;
         font-size: 0.8125rem;
         font-weight: var(--medium);
@@ -93,6 +97,7 @@
         z-index: 5;
         top: clamp(1.5rem, 4vw, 2.5rem);
         right: clamp(1.5rem, 4vw, 3.5rem);
+        display: none;
         margin: 0;
         color: var(--secondary);
         font-size: 0.8125rem;
@@ -107,67 +112,82 @@
       .character {
         position: absolute;
         z-index: 4;
-        left: 50%;
-        bottom: 42%;
+        left: var(--timeline-origin);
+        top: calc(var(--timeline-y) - 0.6rem);
+        bottom: auto;
         width: 0;
         height: 0;
+        opacity: 0;
+        transform: translate3d(0, 0.35rem, 0);
+        transition:
+          opacity 360ms ease-out,
+          transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .stage.show-character .character {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
       }
 
       .character-sprite {
         position: absolute;
         bottom: 0;
-        left: 50%;
+        left: 0;
         background-repeat: no-repeat;
         image-rendering: pixelated;
-        transform: translate3d(-50%, 0, 0);
+        transform: translate3d(0, 0, 0);
         transform-origin: 50% 100%;
         transition: opacity 180ms ease-in-out;
         will-change: opacity;
       }
 
-      .character-idle {
-        /* Match the visible artwork, accounting for transparent sprite padding. */
-        width: calc(var(--character-height) * 1024 / 1350);
-        height: calc(var(--character-height) * 1536 / 1350);
-        bottom: calc(0.6rem - var(--character-height) * 84 / 1350);
-        background-image: url("assets/kaj-idle-front.png");
-        background-position: 50% 100%;
-        background-size: contain;
+      .character-turn {
+        /* Four equally spaced views share one body scale and ground line. */
+        width: calc(var(--character-height) * 305 / 660);
+        height: calc(var(--character-height) * 676 / 660);
+        bottom: calc(0.6rem - var(--character-height) * 8 / 660);
+        background-image: url("assets/kaj-turn-right.png");
+        background-position: 0% 0%;
+        background-size: 400% 100%;
         opacity: 1;
       }
 
       .character-motion {
-        width: calc(var(--character-height) * 124 / 214);
-        height: calc(var(--character-height) * 397 / 214);
-        bottom: calc(0.6rem - var(--character-height) * 91 / 214);
+        width: calc(var(--character-height) * 216 / 416);
+        height: calc(var(--character-height) * 432 / 416);
+        bottom: calc(0.6rem - var(--character-height) * 8 / 416);
         background-image: url("assets/kaj-walk-right.png");
         background-position: 0% 0%;
         background-size: 800% 100%;
         opacity: 0;
       }
 
-      .character.is-moving .character-idle {
-        opacity: 0;
-      }
-
-      .character.is-moving .character-motion {
-        opacity: 1;
+      .character-motion.is-running {
+        width: calc(var(--character-height) * 253 / 367);
+        height: calc(var(--character-height) * 383 / 367);
+        bottom: calc(0.6rem - var(--character-height) * 8 / 367);
       }
 
       .timeline-window {
         position: absolute;
         z-index: 2;
-        top: 58%;
+        top: var(--timeline-y);
         left: 0;
         width: 100%;
         height: 8rem;
-        mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+        mask-image: linear-gradient(to right, black, black 92%, transparent);
+        opacity: 0;
+        transition: opacity 420ms ease-out;
+      }
+
+      .stage.show-timeline .timeline-window {
+        opacity: 1;
       }
 
       .timeline-track {
         position: absolute;
         top: 0;
-        left: 50%;
+        left: var(--timeline-origin);
         height: 100%;
         will-change: transform;
       }
@@ -175,55 +195,59 @@
       .timeline-line {
         position: absolute;
         top: 0;
-        left: -100vw;
-        width: calc(15 * var(--spacing) + 200vw);
+        left: 0;
+        width: calc(17 * var(--spacing) + 100vw);
         height: 1px;
         background: var(--line);
+        transform: scaleX(0);
+        transform-origin: 0 50%;
+        transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .stage.show-timeline .timeline-line {
+        transform: scaleX(1);
       }
 
       .year-mark {
         position: absolute;
-        top: 0;
+        top: 1rem;
         left: calc(var(--index) * var(--spacing));
         width: 5rem;
-        transform: translateX(-50%);
+        transform: none;
         color: var(--secondary);
-        text-align: center;
-        font-size: 0.8125rem;
-        letter-spacing: -0.006em;
-        opacity: 0.58;
+        text-align: left;
+        font-size: 0.6875rem;
+        line-height: 1rem;
+        letter-spacing: 0.02em;
+        opacity: 0.3;
       }
 
       .year-mark::before {
-        content: "";
-        display: block;
-        width: 1px;
-        height: 0.5rem;
-        margin: -0.25rem auto 1.15rem;
-        background: currentColor;
-        opacity: 0.42;
+        content: none;
       }
 
       .center-notch {
-        position: absolute;
-        z-index: 3;
-        top: calc(58% - 0.35rem);
-        left: 50%;
-        width: 1px;
-        height: 0.7rem;
-        background: rgba(133, 141, 153, 0.6);
-        transform: translateX(-50%);
+        display: none;
       }
 
       .chapter {
         position: absolute;
         z-index: 4;
-        top: calc(58% + 3.55rem);
-        left: 50%;
-        width: min(31rem, calc(100% - 3rem));
-        transform: translateX(-50%);
-        text-align: center;
-        transition: opacity 140ms ease-out;
+        top: calc(var(--timeline-y) + 3.25rem);
+        left: var(--timeline-origin);
+        width: var(--content-width);
+        transform: none;
+        text-align: left;
+        opacity: 0;
+        transform: translate3d(0, 0.35rem, 0);
+        transition:
+          opacity 180ms ease-out,
+          transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .stage.show-info .chapter {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
       }
 
       .chapter-date,
@@ -235,28 +259,86 @@
       .chapter-date,
       .chapter-company,
       .chapter-description {
-        color: var(--secondary);
-        font-size: 0.8125rem;
-        letter-spacing: -0.006em;
+        color: var(--text);
+        font-size: 0.6875rem;
+        line-height: 1rem;
+        letter-spacing: 0.03em;
+      }
+
+      .chapter-date {
+        display: none;
       }
 
       .chapter-role {
-        margin: 0.18rem 0 0;
-        font-size: 1.125rem;
-        font-weight: var(--medium);
+        margin: 0;
+        font-size: 0.6875rem;
+        font-weight: var(--regular);
+        line-height: 1rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
       }
 
       .chapter-company {
-        margin-top: 0.05rem;
+        margin-top: 0;
+        text-transform: uppercase;
       }
 
       .chapter-description {
-        max-width: 29rem;
-        margin: 0.9rem auto 0;
-        line-height: 1.5;
+        max-width: 20.9375rem;
+        margin: 1.25rem 0 0;
+        font-size: 0.875rem;
+        line-height: 1.125rem;
+        letter-spacing: 0.01em;
+      }
+
+      .contact-card {
+        position: absolute;
+        z-index: 6;
+        top: clamp(1.75rem, 3vw, 2.75rem);
+        right: clamp(1.75rem, 3vw, 2.75rem);
+        margin: 0;
+        color: var(--text);
+        font-size: 0.6875rem;
+        font-weight: var(--regular);
+        line-height: 1rem;
+        letter-spacing: 0.03em;
+        text-align: left;
+        text-transform: uppercase;
+        opacity: 0;
+        transform: translate3d(0, 0.35rem, 0);
+        transition:
+          opacity 360ms ease-out,
+          transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .stage.show-info .contact-card {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+
+      .contact-card p {
+        margin: 0;
+      }
+
+      .contact-card nav {
+        margin-top: 1rem;
+      }
+
+      .contact-card a {
+        display: block;
+        width: max-content;
+        color: inherit;
+        text-decoration: none;
+        text-underline-offset: 0.18em;
+      }
+
+      .contact-card a:hover,
+      .contact-card a:focus-visible {
+        text-decoration: underline;
       }
 
       .progress {
+        display: none;
         position: absolute;
         z-index: 5;
         right: clamp(1.5rem, 4vw, 3.5rem);
@@ -277,58 +359,19 @@
       }
 
       @media (max-height: 43rem) {
-        .character {
-          bottom: 43%;
-        }
-
-        .character {
-          --character-height: 3.93rem;
-        }
-
-        .timeline-window {
-          top: 60%;
-        }
-
-        .center-notch {
-          top: calc(60% - 0.35rem);
-        }
-
-        .chapter {
-          top: calc(60% + 3.2rem);
-        }
-
         .chapter-description {
-          margin-top: 0.45rem;
+          margin-top: 0.75rem;
         }
       }
 
       @media (max-width: 38rem) {
-        :root {
-          --spacing: 10.5rem;
-        }
-
-        .character {
-          bottom: 44%;
-        }
-
-        .character {
-          --character-height: 3.87rem;
-        }
-
-        .timeline-window {
-          top: 56%;
-        }
-
-        .center-notch {
-          top: calc(56% - 0.35rem);
-        }
-
-        .chapter {
-          top: calc(56% + 3.55rem);
-        }
-
         .scroll-prompt {
           display: none;
+        }
+
+        .contact-card {
+          top: 1.5rem;
+          right: 1.5rem;
         }
       }
 
@@ -336,7 +379,14 @@
         .scroll-prompt,
         .year-mark,
         .chapter,
+        .character,
         .character-sprite {
+          transition: none;
+        }
+
+        .timeline-window,
+        .timeline-line,
+        .contact-card {
           transition: none;
         }
 
@@ -349,30 +399,41 @@
         <h1 class="site-title">Kaj Drobin<span>Design &amp; Product</span></h1>
         <p class="scroll-prompt">Scroll to walk back in time</p>
 
+        <aside class="contact-card" aria-label="About and contact">
+          <p>Kaj Drobin<br>Design and Product</p>
+          <nav aria-label="Contact links">
+            <a href="mailto:kaj@drob.in">Email</a>
+            <a href="https://x.com/kajdro">X</a>
+            <a href="https://www.linkedin.com/in/kajdrobin">LinkedIn</a>
+          </nav>
+        </aside>
+
         <div class="character" role="img" aria-label="8-bit character of Kaj Drobin">
-          <span class="character-sprite character-idle"></span>
+          <span class="character-sprite character-turn"></span>
           <span class="character-sprite character-motion"></span>
         </div>
 
         <div class="timeline-window" aria-hidden="true">
           <div class="timeline-track" id="timeline-track">
             <div class="timeline-line"></div>
-            <span class="year-mark" style="--index: 0">2024</span>
-            <span class="year-mark" style="--index: 1">2023</span>
-            <span class="year-mark" style="--index: 2">2022</span>
-            <span class="year-mark" style="--index: 3">2021</span>
-            <span class="year-mark" style="--index: 4">2020</span>
-            <span class="year-mark" style="--index: 5">2019</span>
-            <span class="year-mark" style="--index: 6">2018</span>
-            <span class="year-mark" style="--index: 7">2017</span>
-            <span class="year-mark" style="--index: 8">2016</span>
-            <span class="year-mark" style="--index: 9">2015</span>
-            <span class="year-mark" style="--index: 10">2014</span>
-            <span class="year-mark" style="--index: 11">2013</span>
-            <span class="year-mark" style="--index: 12">2012</span>
-            <span class="year-mark" style="--index: 13">2011</span>
-            <span class="year-mark" style="--index: 14">2010</span>
-            <span class="year-mark" style="--index: 15">2009</span>
+            <span class="year-mark" style="--index: 0">Now</span>
+            <span class="year-mark" style="--index: 1">2025</span>
+            <span class="year-mark" style="--index: 2">2024</span>
+            <span class="year-mark" style="--index: 3">2023</span>
+            <span class="year-mark" style="--index: 4">2022</span>
+            <span class="year-mark" style="--index: 5">2021</span>
+            <span class="year-mark" style="--index: 6">2020</span>
+            <span class="year-mark" style="--index: 7">2019</span>
+            <span class="year-mark" style="--index: 8">2018</span>
+            <span class="year-mark" style="--index: 9">2017</span>
+            <span class="year-mark" style="--index: 10">2016</span>
+            <span class="year-mark" style="--index: 11">2015</span>
+            <span class="year-mark" style="--index: 12">2014</span>
+            <span class="year-mark" style="--index: 13">2013</span>
+            <span class="year-mark" style="--index: 14">2012</span>
+            <span class="year-mark" style="--index: 15">2011</span>
+            <span class="year-mark" style="--index: 16">2010</span>
+            <span class="year-mark" style="--index: 17">2009</span>
           </div>
         </div>
         <div class="center-notch" aria-hidden="true"></div>
@@ -392,6 +453,7 @@
       const years = Array.from(document.querySelectorAll('.year-mark'))
       const track = document.querySelector('#timeline-track')
       const character = document.querySelector('.character')
+      const turnCharacter = document.querySelector('.character-turn')
       const motionCharacter = document.querySelector('.character-motion')
       const chapter = document.querySelector('#chapter')
       const date = document.querySelector('#chapter-date')
@@ -405,31 +467,31 @@
       const chapters = [
         {
           from: 0,
-          to: 0,
+          to: 1,
           date: '2024–Now',
           role: 'Co-Founder',
           company: 'Stilla',
           description: 'Building Stilla, the multiplayer AI teammate, with the sharpest people I’ve worked with over the past 15 years.'
         },
         {
-          from: 1,
-          to: 6,
+          from: 2,
+          to: 8,
           date: '2018–2024',
           role: 'Director of Product, Shop',
           company: 'Shopify',
           description: 'Co-created the Shop app and Shop Pay, leading their early design and product.'
         },
         {
-          from: 7,
-          to: 13,
+          from: 9,
+          to: 15,
           date: '2011–2018',
           role: 'CPO & Co-Founder',
           company: 'Tictail',
           description: 'Led product and design at Tictail as it scaled to 100k+ online stores and was acquired by Shopify.'
         },
         {
-          from: 14,
-          to: 15,
+          from: 16,
+          to: 17,
           date: '2009–2011',
           role: 'Designer & Partner',
           company: 'Identity Works',
@@ -454,11 +516,13 @@
       let runUntil = 0
       let fastInputSamples = 0
 
+      const TURN_SCROLL_DISTANCE = 180
       const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
+      const turnPositions = ['0%', '33.333%', '66.667%', '100%']
       const walkSprite = 'url("assets/kaj-walk-right.png")'
       const runSprite = 'url("assets/kaj-run-right.png")'
 
-      ;['assets/kaj-idle-front.png', 'assets/kaj-walk-right.png', 'assets/kaj-run-right.png'].forEach((source) => {
+      ;['assets/kaj-turn-right.png', 'assets/kaj-walk-right.png', 'assets/kaj-run-right.png'].forEach((source) => {
         const image = new Image()
         image.src = source
       })
@@ -499,13 +563,17 @@
 
       const getProgress = () => {
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight
-        return maxScroll > 0 ? Math.min(1, Math.max(0, window.scrollY / maxScroll)) : 0
+        const timelineDistance = maxScroll - TURN_SCROLL_DISTANCE
+        return timelineDistance > 0
+          ? Math.min(1, Math.max(0, (window.scrollY - TURN_SCROLL_DISTANCE) / timelineDistance))
+          : 0
       }
 
       const setMotionMode = (mode) => {
         if (mode === motionMode) return
         motionMode = mode
         motionCharacter.style.backgroundImage = motionMode === 'run' ? runSprite : walkSprite
+        motionCharacter.classList.toggle('is-running', motionMode === 'run')
       }
 
       const render = (now) => {
@@ -539,11 +607,17 @@
         track.style.transform = `translate3d(${-exactIndex * spacing}px, 0, 0)`
         progressBar.style.transform = `scaleX(${displayedProgress})`
         prompt.classList.toggle('is-hidden', displayedProgress > 0.025)
-        character.classList.toggle('is-moving', displayedProgress > 0.0005 || targetProgress > 0.0005)
+
+        const turnProgress = Math.min(1, Math.max(0, window.scrollY / TURN_SCROLL_DISTANCE))
+        const turnFrame = turnProgress === 0 ? 0 : Math.min(3, Math.ceil(turnProgress * 3))
+        const motionMix = Math.min(1, Math.max(0, (turnProgress - 0.82) / 0.18))
+        turnCharacter.style.backgroundPosition = `${turnPositions[turnFrame]} 0%`
+        turnCharacter.style.opacity = `${1 - motionMix}`
+        motionCharacter.style.opacity = `${motionMix}`
 
         years.forEach((year, index) => {
           const proximity = Math.max(0, 1 - Math.abs(index - exactIndex))
-          year.style.opacity = `${0.58 + proximity * 0.32}`
+          year.style.opacity = `${0.3 + proximity * 0.7}`
         })
 
         const nextChapter = chapters.findIndex((item) => yearIndex >= item.from && yearIndex <= item.to)
@@ -570,6 +644,17 @@
         if (ticking) return
         ticking = true
         requestAnimationFrame(render)
+      }
+
+      const showEntrance = () => {
+        const stage = document.querySelector('.stage')
+        if (reduceMotion) {
+          stage.classList.add('show-character', 'show-timeline', 'show-info')
+          return
+        }
+        requestAnimationFrame(() => stage.classList.add('show-character'))
+        setTimeout(() => stage.classList.add('show-timeline'), 360)
+        setTimeout(() => stage.classList.add('show-info'), 780)
       }
 
       const handleResize = () => {
@@ -600,6 +685,7 @@
       lastVisualIndex = displayedProgress * (years.length - 1)
       window.addEventListener('scroll', handleScroll, { passive: true })
       window.addEventListener('resize', handleResize)
+      showEntrance()
       requestRender()
     </script>
   </body>
