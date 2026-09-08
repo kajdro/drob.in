@@ -1059,7 +1059,7 @@
       const showEntrance = () => {
         let seen = false
         try { seen = sessionStorage.getItem('kaj-entrance-seen') === '1' } catch { /* Play normally without storage. */ }
-        if (reduceMotion || seen || timelineScrollY > 0) {
+        if (reduceMotion || (seen && !new URLSearchParams(location.search).has('intro')) || timelineScrollY > 0) {
           finishEntrance()
           return
         }
@@ -1087,7 +1087,8 @@
       }
 
       const handleResize = () => {
-        if (entrance) finishEntrance()
+        // Browser chrome and font loading can resize the viewport during startup.
+        // Keep the run alive; its destination is positioned by the layout itself.
         spacing = getSpacing()
         targetProgress = getProgress()
         requestRender()
@@ -1125,6 +1126,8 @@
       }
 
       const handleScroll = () => {
+        // Ignore startup scroll notifications that have not moved the page.
+        if (entrance && window.scrollY === timelineScrollY) return
         if (entrance) finishEntrance()
         // Native events can be delayed during iOS touch gestures. The gesture owns
         // the position until release; only then do we sync the browser scroll.
