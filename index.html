@@ -1020,9 +1020,9 @@
         if (entrance.started === null) return
         const elapsed = now - entrance.started
         const progress = Math.min(1, elapsed / entrance.duration)
-        // Run at an even pace, with a short deceleration as the character arrives.
-        const travel = progress < 0.8 ? progress * 1.1
-          : 0.88 + 0.12 * (1 - Math.pow(1 - (progress - 0.8) / 0.2, 2))
+        // Keep the run energetic, then brake smoothly over the final 15%.
+        const travel = progress < 0.85 ? progress / 0.925
+          : (0.85 + 0.075 * (1 - Math.pow(1 - (progress - 0.85) / 0.15, 2))) / 0.925
         character.style.transform = `translate3d(${entrance.startX * (1 - travel)}px, 0, 0)`
         const arriving = elapsed - entrance.duration
         if (progress < 1) {
@@ -1037,9 +1037,9 @@
         }
         const stage = document.querySelector('.stage')
         // Finish turning and stand front-facing before revealing the surroundings.
-        if (arriving >= 420) stage.classList.add('show-timeline')
-        if (arriving >= 720) stage.classList.add('show-info')
-        if (arriving >= 1100) finishEntrance()
+        if (arriving >= 550) stage.classList.add('show-timeline')
+        if (arriving >= 850) stage.classList.add('show-info')
+        if (arriving >= 1250) finishEntrance()
         else requestRender()
       }
 
@@ -1060,7 +1060,7 @@
           }
           const anchorX = character.getBoundingClientRect().left
           opening.startX = -anchorX - 100
-          opening.duration = Math.max(900, Math.min(1500, Math.abs(opening.startX) * 2.2))
+          opening.duration = 1800
           opening.started = performance.now()
           character.classList.add('is-entering')
           character.classList.remove('is-facing-left')
