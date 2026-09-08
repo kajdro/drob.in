@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://drob.in/sitemap.xml
