@@ -161,6 +161,16 @@
         transition: none;
       }
 
+      /* Play the same eight run frames independently of the entrance translation. */
+      .character.is-entering .character-run {
+        animation: entrance-run 600ms steps(8, end) infinite;
+      }
+
+      @keyframes entrance-run {
+        from { background-position: 0% 56%; }
+        to { background-position: 114.285714% 56%; }
+      }
+
       .character-sprite {
         position: absolute;
         bottom: 0;
@@ -490,6 +500,10 @@
       }
 
       @media (prefers-reduced-motion: reduce) {
+        .character.is-entering .character-run {
+          animation: none;
+        }
+
         .scroll-prompt,
         .year-mark,
         .chapter,
@@ -1028,7 +1042,6 @@
         if (progress < 1) {
           runCharacter.style.visibility = 'visible'
           turnCharacter.style.visibility = 'hidden'
-          runCharacter.style.backgroundPosition = `${spritePositions[Math.floor(elapsed / 75) % 8]} 56%`
         } else {
           runCharacter.style.visibility = 'hidden'
           turnCharacter.style.visibility = 'visible'
