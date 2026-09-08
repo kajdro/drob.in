@@ -793,7 +793,7 @@
         if (!ticking) lastFrameTime = now
         targetProgress = getProgress()
         if (deltaTime > 80) fastInputSamples = 0
-        fastInputSamples = velocity > 8 ? fastInputSamples + 1 : Math.max(0, fastInputSamples - 1)
+        fastInputSamples = velocity > 5 ? fastInputSamples + 1 : Math.max(0, fastInputSamples - 1)
         if (!automaticWalk && fastInputSamples >= 3) runUntil = now + 260
         lastInputY = window.scrollY
         lastInputTime = now
