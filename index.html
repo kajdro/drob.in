@@ -113,7 +113,7 @@
         position: absolute;
         z-index: 4;
         left: var(--timeline-origin);
-        top: calc(var(--timeline-y) - 0.6rem);
+        top: calc(var(--timeline-y) - 1rem);
         bottom: auto;
         width: 0;
         height: 0;
@@ -153,10 +153,10 @@
       }
 
       .character-motion {
-        width: calc(var(--character-height) * 216 / 416);
-        height: calc(var(--character-height) * 432 / 416);
-        bottom: calc(0.6rem - var(--character-height) * 8 / 416);
-        background-image: url("assets/kaj-walk-right.png");
+        width: calc(var(--character-height) * 264 / 525);
+        height: calc(var(--character-height) * 541 / 525);
+        bottom: calc(0.6rem - var(--character-height) * 8 / 525);
+        background-image: url("assets/kaj-walk-clean.png");
         background-position: 0% 0%;
         background-size: 800% 100%;
         opacity: 0;
@@ -198,7 +198,11 @@
         left: 0;
         width: calc(17 * var(--spacing) + 100vw);
         height: 1px;
-        background: var(--line);
+        background-color: rgba(255, 255, 255, 0.025);
+        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.07) 42%, transparent 90%);
+        background-size: 100vw 100%;
+        background-repeat: no-repeat;
+        background-position: var(--travel, 0px) 0;
         transform: scaleX(0);
         transform-origin: 0 50%;
         transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -210,7 +214,7 @@
 
       .year-mark {
         position: absolute;
-        top: 1rem;
+        top: 1.35rem;
         left: calc(var(--index) * var(--spacing));
         width: 5rem;
         transform: none;
@@ -233,7 +237,7 @@
       .chapter {
         position: absolute;
         z-index: 4;
-        top: calc(var(--timeline-y) + 3.25rem);
+        top: calc(var(--timeline-y) + 4.25rem);
         left: var(--timeline-origin);
         width: var(--content-width);
         transform: none;
@@ -285,7 +289,7 @@
 
       .chapter-description {
         max-width: 20.9375rem;
-        margin: 1.25rem 0 0;
+        margin: 1.75rem 0 0;
         font-size: 0.875rem;
         line-height: 1.125rem;
         letter-spacing: 0.01em;
@@ -360,7 +364,7 @@
 
       @media (max-height: 43rem) {
         .chapter-description {
-          margin-top: 0.75rem;
+          margin-top: 1.25rem;
         }
       }
 
@@ -519,10 +523,10 @@
       const TURN_SCROLL_DISTANCE = 180
       const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
       const turnPositions = ['0%', '33.333%', '66.667%', '100%']
-      const walkSprite = 'url("assets/kaj-walk-right.png")'
+      const walkSprite = 'url("assets/kaj-walk-clean.png")'
       const runSprite = 'url("assets/kaj-run-right.png")'
 
-      ;['assets/kaj-turn-right.png', 'assets/kaj-walk-right.png', 'assets/kaj-run-right.png'].forEach((source) => {
+      ;['assets/kaj-turn-right.png', 'assets/kaj-walk-clean.png', 'assets/kaj-run-right.png'].forEach((source) => {
         const image = new Image()
         image.src = source
       })
@@ -605,6 +609,7 @@
         const exactIndex = displayedProgress * (years.length - 1)
         const yearIndex = Math.min(years.length - 1, Math.floor(exactIndex + 0.000001))
         track.style.transform = `translate3d(${-exactIndex * spacing}px, 0, 0)`
+        track.style.setProperty('--travel', `${exactIndex * spacing}px`)
         progressBar.style.transform = `scaleX(${displayedProgress})`
         prompt.classList.toggle('is-hidden', displayedProgress > 0.025)
 
