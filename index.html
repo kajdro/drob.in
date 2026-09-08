@@ -715,8 +715,11 @@
         const isMoving = !reduceMotion && (motionActive || now - lastCharacterMotionTime < 420)
         const visualDelta = (exactIndex - lastVisualIndex) * spacing
         const visualDistance = Math.abs(visualDelta)
-        // Face the direction of visible travel; ignore tiny spring/finger corrections.
-        if (Math.abs(visualDelta) > 0.01) {
+        // Touch owns facing immediately, including the initial turn before the
+        // timeline has moved. Desktop movement follows the visible timeline.
+        if (swipeMomentum && Math.abs(swipeMomentum.velocity) > 0.08) {
+          travelDirection = Math.sign(swipeMomentum.velocity)
+        } else if (!touchGesture && !swipeMomentum && Math.abs(visualDelta) > 0.01) {
           directionDistance = Math.sign(visualDelta) === Math.sign(directionDistance)
             ? directionDistance + visualDelta : visualDelta
           if (Math.abs(directionDistance) >= 3) travelDirection = Math.sign(directionDistance)
@@ -898,12 +901,20 @@
         if (!touchGesture.axis) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) < 6) return
           touchGesture.axis = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical'
+          if (touchGesture.axis === 'horizontal') {
+            travelDirection = Math.sign(dx)
+            directionDistance = 0
+          }
         }
         if (touchGesture.axis !== 'horizontal') return
         const now = performance.now()
         const distance = dx * 1.7
+        const stepDistance = distance - touchGesture.distance
+        directionDistance = Math.sign(stepDistance) === Math.sign(directionDistance)
+          ? directionDistance + stepDistance : stepDistance
+        if (Math.abs(directionDistance) >= 6) travelDirection = Math.sign(directionDistance)
         const elapsed = Math.max(8, now - touchGesture.time)
-        const velocity = (distance - touchGesture.distance) / elapsed
+        const velocity = stepDistance / elapsed
         const blend = 1 - Math.exp(-elapsed / 40)
         // Time-based filtering makes release speed consistent across touch refresh rates.
         touchGesture.velocity = elapsed > 100 || Math.sign(velocity) !== Math.sign(touchGesture.velocity)
