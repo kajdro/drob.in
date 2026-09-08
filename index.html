@@ -142,6 +142,10 @@
         will-change: opacity;
       }
 
+      .character.is-facing-left .character-sprite {
+        transform: scaleX(-1);
+      }
+
       .character-turn {
         /* Four equally spaced views share one body scale and ground line. */
         width: calc(var(--character-height) * 305 / 660);
@@ -533,6 +537,7 @@
       let runUntil = 0
       let fastInputSamples = 0
       let automaticWalk = null
+      let travelDirection = 1
 
       const TURN_SCROLL_DISTANCE = 180
       const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
@@ -628,8 +633,11 @@
         prompt.classList.toggle('is-hidden', displayedProgress > 0.025)
 
         const turnProgress = Math.min(1, Math.max(0, window.scrollY / TURN_SCROLL_DISTANCE))
-        const turnFrame = turnProgress === 0 ? 0 : Math.min(3, Math.ceil(turnProgress * 3))
-        const motionMix = Math.min(1, Math.max(0, (turnProgress - 0.82) / 0.18))
+        const inputStillActive = window.scrollY > 0 && now - lastInputTime < 160
+        const isMoving = !reduceMotion && (automaticWalk !== null || inputStillActive || Math.abs(progressVelocity) > 0.00002 || Math.abs(displayedProgress - targetProgress) > 0.000005)
+        const turnFrame = !isMoving || turnProgress === 0 ? 0 : Math.min(3, Math.ceil(turnProgress * 3))
+        const motionMix = isMoving ? Math.min(1, Math.max(0, (turnProgress - 0.82) / 0.18)) : 0
+        character.classList.toggle('is-facing-left', isMoving && travelDirection < 0)
         turnCharacter.style.backgroundPosition = `${turnPositions[turnFrame]} 0%`
         turnCharacter.style.opacity = `${1 - motionMix}`
         motionCharacter.style.opacity = `${motionMix}`
@@ -666,7 +674,7 @@
         lastVisualIndex = exactIndex
         lastFrameTime = now
 
-        if (displayedProgress !== targetProgress || progressVelocity !== 0) requestRender()
+        if (displayedProgress !== targetProgress || progressVelocity !== 0 || inputStillActive || automaticWalk) requestRender()
       }
 
       const requestRender = () => {
@@ -685,6 +693,7 @@
       const walkToYear = (index) => {
         cancelAutomaticWalk()
         const startY = window.scrollY
+        travelDirection = index >= displayedProgress * (years.length - 1) ? 1 : -1
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight
         const endY = index === 0 ? 0 : Math.min(maxScroll,
           Math.ceil(TURN_SCROLL_DISTANCE + index / (years.length - 1) * (maxScroll - TURN_SCROLL_DISTANCE)))
@@ -694,7 +703,7 @@
         }
         const distance = Math.abs(index - displayedProgress * (years.length - 1))
         const duration = Math.min(6000, Math.max(900, distance * 1000))
-        const journey = { frame: 0, started: performance.now() }
+        const journey = { frame: 0, started: performance.now(), index }
         automaticWalk = journey
         const step = (now) => {
           if (automaticWalk !== journey) return
@@ -711,7 +720,16 @@
       window.addEventListener('wheel', cancelAutomaticWalk, { passive: true })
       window.addEventListener('touchstart', cancelAutomaticWalk, { passive: true })
       window.addEventListener('keydown', (event) => {
-        if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) cancelAutomaticWalk()
+        if (event.altKey || event.ctrlKey || event.metaKey || event.target.closest('input, textarea, select, [contenteditable="true"]')) return
+        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+          event.preventDefault()
+          if (event.repeat) return
+          const direction = ['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : -1
+          const currentIndex = automaticWalk ? automaticWalk.index : Math.round(displayedProgress * (years.length - 1))
+          walkToYear(Math.max(0, Math.min(years.length - 1, currentIndex + direction)))
+        } else if (['PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) {
+          cancelAutomaticWalk()
+        }
       })
 
       const showEntrance = () => {
@@ -736,6 +754,7 @@
         const deltaY = window.scrollY - lastInputY
         const deltaTime = Math.max(16, now - lastInputTime)
         const velocity = Math.abs(deltaY) / deltaTime
+        if (deltaY !== 0) travelDirection = Math.sign(deltaY)
 
         if (!ticking) lastFrameTime = now
         targetProgress = getProgress()
