@@ -99,12 +99,13 @@
         z-index: 4;
         left: 50%;
         bottom: 42%;
-        width: clamp(8.25rem, 14vw, 11.75rem);
-        aspect-ratio: 0.6633;
-        background-image: url("assets/kaj-walk-cycle.png");
+        width: clamp(3.75rem, 6vw, 4.75rem);
+        aspect-ratio: 0.3123;
+        background-image: url("assets/kaj-walk-right.png");
         background-repeat: no-repeat;
         background-position: 0% 0%;
-        background-size: 400% 100%;
+        background-size: 800% 100%;
+        filter: brightness(1.22) drop-shadow(0 0 1px rgba(244, 246, 248, 0.28));
         image-rendering: pixelated;
         transform: translate3d(-50%, 0, 0);
         transform-origin: 50% 100%;
@@ -252,7 +253,7 @@
       @media (max-height: 43rem) {
         .character {
           bottom: 43%;
-          width: 7.25rem;
+          width: 3.5rem;
         }
 
         .timeline-window {
@@ -279,7 +280,7 @@
 
         .character {
           bottom: 44%;
-          width: 8.5rem;
+          width: 3.75rem;
         }
 
         .timeline-window {
@@ -404,6 +405,20 @@
       let currentChapter = 0
       let ticking = false
       let spacing
+      let lastY = window.scrollY
+      let lastTime = performance.now()
+      let spritePhase = 0
+      let motionMode = 'walk'
+      let settleTimer
+
+      const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
+      const walkSprite = 'url("assets/kaj-walk-right.png")'
+      const runSprite = 'url("assets/kaj-run-right.png")'
+
+      ;['assets/kaj-walk-right.png', 'assets/kaj-run-right.png'].forEach((source) => {
+        const image = new Image()
+        image.src = source
+      })
 
       const getSpacing = () => {
         const probe = document.createElement('div')
@@ -429,6 +444,10 @@
 
       const render = () => {
         ticking = false
+        const now = performance.now()
+        const deltaY = window.scrollY - lastY
+        const deltaTime = Math.max(16, now - lastTime)
+        const velocity = Math.abs(deltaY) / deltaTime
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight
         const progress = maxScroll > 0 ? Math.min(1, Math.max(0, window.scrollY / maxScroll)) : 0
         const exactIndex = progress * (years.length - 1)
@@ -443,14 +462,26 @@
         if (nextChapter >= 0) setChapter(nextChapter)
 
         if (!reduceMotion) {
-          const frame = Math.floor(window.scrollY / 42) % 4
-          const positions = ['0%', '33.333%', '66.666%', '100%']
-          character.style.backgroundPosition = `${positions[frame]} 0%`
-          const stride = Math.sin(window.scrollY / 42 * Math.PI) * Math.min(2.5, Math.abs(window.scrollY - (render.lastY || 0)) * 0.18)
-          character.style.transform = `translate3d(-50%, ${-Math.abs(stride)}px, 0)`
+          const nextMode = velocity > 1.25 ? 'run' : 'walk'
+          if (nextMode !== motionMode) {
+            motionMode = nextMode
+            character.style.backgroundImage = motionMode === 'run' ? runSprite : walkSprite
+          }
+
+          spritePhase += Math.abs(deltaY) / (motionMode === 'run' ? 22 : 34)
+          const frame = Math.floor(spritePhase) % 8
+          character.style.backgroundPosition = `${spritePositions[frame]} 0%`
+
+          clearTimeout(settleTimer)
+          settleTimer = setTimeout(() => {
+            motionMode = 'walk'
+            character.style.backgroundImage = walkSprite
+            character.style.backgroundPosition = `${spritePositions[0]} 0%`
+          }, 140)
         }
 
-        render.lastY = window.scrollY
+        lastY = window.scrollY
+        lastTime = now
       }
 
       const requestRender = () => {
