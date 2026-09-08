@@ -709,7 +709,7 @@
         prompt.classList.toggle('is-hidden', displayedProgress > 0.025)
 
         const inputStillActive = timelineScrollY > 0 && now - lastInputTime < 160
-        const motionActive = automaticWalk !== null || swipeMomentum !== null || Boolean(touchGesture && (touchGesture.axis || characterTurn > 0)) || inputStillActive || Math.abs(progressVelocity) > 0.00002 || Math.abs(displayedProgress - targetProgress) > 0.000005
+        const motionActive = automaticWalk !== null || swipeMomentum !== null || Boolean(touchGesture && (touchGesture.axis === 'horizontal' || (!touchGesture.axis && characterTurn > 0))) || inputStillActive || Math.abs(progressVelocity) > 0.00002 || Math.abs(displayedProgress - targetProgress) > 0.000005
         if (motionActive) lastCharacterMotionTime = now
         // Hold the side pose through touch-event gaps and between quick swipes.
         const isMoving = !reduceMotion && (motionActive || now - lastCharacterMotionTime < 420)
@@ -850,7 +850,7 @@
       }, { passive: true })
       let touchGesture = null
       let suppressSwipeClickUntil = 0
-      // Horizontal swipes cover more ground; both axes share release physics.
+      // Touch navigation is horizontal-only; desktop wheel scrolling is unchanged.
       const coastAfterSwipe = (velocity, axis) => {
         if (reduceMotion || Math.abs(velocity) < 0.08) return
         const coast = { frame: 0, time: performance.now(), position: timelineScrollY, velocity, axis }
@@ -899,8 +899,9 @@
           if (Math.max(Math.abs(dx), Math.abs(dy)) < 6) return
           touchGesture.axis = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical'
         }
+        if (touchGesture.axis !== 'horizontal') return
         const now = performance.now()
-        const distance = touchGesture.axis === 'horizontal' ? dx * 1.7 : dy
+        const distance = dx * 1.7
         const elapsed = Math.max(8, now - touchGesture.time)
         const velocity = (distance - touchGesture.distance) / elapsed
         const blend = 1 - Math.exp(-elapsed / 40)
@@ -915,7 +916,7 @@
         requestRender()
       }, { passive: false })
       const endTouchGesture = (event) => {
-        if (touchGesture?.axis) {
+        if (touchGesture?.axis === 'horizontal') {
           const now = performance.now()
           suppressSwipeClickUntil = now + 500
           // Holding the finger still before lifting should stop the glide.
