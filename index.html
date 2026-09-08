@@ -454,6 +454,21 @@
         }
       }
 
+      @media (any-pointer: coarse) {
+        /* Keep the scene independent of Safari's native scroll/sticky updates. */
+        .stage {
+          position: fixed;
+          left: 0;
+          right: 0;
+          transform: translateZ(0);
+        }
+
+        .timeline-window {
+          /* Keep the masked timeline in one composited layer while it moves. */
+          transform: translateZ(0);
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .scroll-prompt,
         .year-mark,
