@@ -167,6 +167,10 @@
         opacity: 0;
       }
 
+      .character-motion:not(.is-running) {
+        filter: brightness(0.9) saturate(0.88) contrast(1.04);
+      }
+
       .character-motion.is-running {
         width: calc(var(--character-height) * 253 / 367);
         height: calc(var(--character-height) * 383 / 367);
