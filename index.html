@@ -48,7 +48,7 @@
       }
 
       .scroll-space {
-        height: 1375vh;
+        height: 2200vh;
       }
 
       .stage {
@@ -99,17 +99,46 @@
         z-index: 4;
         left: 50%;
         bottom: 42%;
-        width: clamp(3.75rem, 6vw, 4.75rem);
-        aspect-ratio: 0.3123;
-        background-image: url("assets/kaj-walk-right.png");
+        width: 0;
+        height: 0;
+      }
+
+      .character-sprite {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
         background-repeat: no-repeat;
-        background-position: 0% 0%;
-        background-size: 800% 100%;
-        filter: brightness(1.22) drop-shadow(0 0 1px rgba(244, 246, 248, 0.28));
         image-rendering: pixelated;
         transform: translate3d(-50%, 0, 0);
         transform-origin: 50% 100%;
-        will-change: transform;
+        transition: opacity 140ms ease-in-out;
+        will-change: opacity;
+      }
+
+      .character-idle {
+        width: clamp(6.4rem, 8vw, 7.9rem);
+        aspect-ratio: 256 / 386;
+        background-image: url("assets/kaj-idle-front.png");
+        background-position: 50% 100%;
+        background-size: contain;
+        opacity: 1;
+      }
+
+      .character-motion {
+        width: clamp(3.15rem, 5vw, 3.75rem);
+        aspect-ratio: 0.3123;
+        background-image: url("assets/kaj-walk-right.png");
+        background-position: 0% 0%;
+        background-size: 800% 100%;
+        opacity: 0;
+      }
+
+      .character.is-moving .character-idle {
+        opacity: 0;
+      }
+
+      .character.is-moving .character-motion {
+        opacity: 1;
       }
 
       .timeline-window {
@@ -253,7 +282,14 @@
       @media (max-height: 43rem) {
         .character {
           bottom: 43%;
-          width: 3.5rem;
+        }
+
+        .character-idle {
+          width: 6.4rem;
+        }
+
+        .character-motion {
+          width: 3.25rem;
         }
 
         .timeline-window {
@@ -280,7 +316,14 @@
 
         .character {
           bottom: 44%;
-          width: 3.75rem;
+        }
+
+        .character-idle {
+          width: 6.4rem;
+        }
+
+        .character-motion {
+          width: 3.2rem;
         }
 
         .timeline-window {
@@ -302,7 +345,8 @@
 
       @media (prefers-reduced-motion: reduce) {
         .scroll-prompt,
-        .year-mark {
+        .year-mark,
+        .character-sprite {
           transition: none;
         }
 
@@ -318,7 +362,10 @@
         <h1 class="site-title">Kaj Drobin<span>Design &amp; Product</span></h1>
         <p class="scroll-prompt">Scroll to walk back in time</p>
 
-        <div class="character" role="img" aria-label="8-bit character of Kaj Drobin walking"></div>
+        <div class="character" role="img" aria-label="8-bit character of Kaj Drobin">
+          <span class="character-sprite character-idle"></span>
+          <span class="character-sprite character-motion"></span>
+        </div>
 
         <div class="timeline-window" aria-hidden="true">
           <div class="timeline-track" id="timeline-track">
@@ -345,9 +392,9 @@
 
         <article class="chapter" id="chapter">
           <p class="chapter-date" id="chapter-date">2024–Now</p>
-          <h2 class="chapter-role" id="chapter-role">Co-founder</h2>
+          <h2 class="chapter-role" id="chapter-role">Co-Founder</h2>
           <p class="chapter-company" id="chapter-company">Stilla</p>
-          <p class="chapter-description" id="chapter-description">Building a new way for teams to work with AI.</p>
+          <p class="chapter-description" id="chapter-description">Building Stilla, the multiplayer AI teammate, with the sharpest people I’ve worked with over the past 15 years.</p>
         </article>
 
         <div class="progress" aria-hidden="true"><span id="progress"></span></div>
@@ -358,6 +405,7 @@
       const years = Array.from(document.querySelectorAll('.year-mark'))
       const track = document.querySelector('#timeline-track')
       const character = document.querySelector('.character')
+      const motionCharacter = document.querySelector('.character-motion')
       const chapter = document.querySelector('#chapter')
       const date = document.querySelector('#chapter-date')
       const role = document.querySelector('#chapter-role')
@@ -372,9 +420,9 @@
           from: 0,
           to: 0,
           date: '2024–Now',
-          role: 'Co-founder',
+          role: 'Co-Founder',
           company: 'Stilla',
-          description: 'Building a new way for teams to work with AI.'
+          description: 'Building Stilla, the multiplayer AI teammate, with the sharpest people I’ve worked with over the past 15 years.'
         },
         {
           from: 1,
@@ -382,23 +430,23 @@
           date: '2018–2024',
           role: 'Director of Product, Shop',
           company: 'Shopify',
-          description: 'Led product for Shop and helped create Shop and Shop Pay after joining through the acquisition of Tictail.'
+          description: 'Co-created the Shop app and Shop Pay, leading their early design and product.'
         },
         {
           from: 7,
           to: 13,
           date: '2011–2018',
-          role: 'CPO & Co-founder',
+          role: 'CPO & Co-Founder',
           company: 'Tictail',
-          description: 'Co-founded Tictail and led design and product through its acquisition by Shopify.'
+          description: 'Led product and design at Tictail as it scaled to 100k+ online stores and was acquired by Shopify.'
         },
         {
           from: 14,
           to: 15,
           date: '2009–2011',
-          role: 'Digital Art Director & Partner',
+          role: 'Designer & Partner',
           company: 'Identity Works',
-          description: 'Worked with international clients including Spotify and Shopify across launch films, the U.S. launch, global brand, and homepage.'
+          description: "Built the digital team and worked with international clients, including Shopify's early branding and web design as it launched and scaled."
         }
       ]
 
@@ -414,12 +462,13 @@
       let spritePhase = 0
       let motionMode = 'walk'
       let runUntil = 0
+      let fastInputSamples = 0
 
       const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
       const walkSprite = 'url("assets/kaj-walk-right.png")'
       const runSprite = 'url("assets/kaj-run-right.png")'
 
-      ;['assets/kaj-walk-right.png', 'assets/kaj-run-right.png'].forEach((source) => {
+      ;['assets/kaj-idle-front.png', 'assets/kaj-walk-right.png', 'assets/kaj-run-right.png'].forEach((source) => {
         const image = new Image()
         image.src = source
       })
@@ -454,14 +503,14 @@
       const setMotionMode = (mode) => {
         if (mode === motionMode) return
         motionMode = mode
-        character.style.backgroundImage = motionMode === 'run' ? runSprite : walkSprite
+        motionCharacter.style.backgroundImage = motionMode === 'run' ? runSprite : walkSprite
       }
 
       const render = (now) => {
         ticking = false
         const deltaTime = Math.min(64, Math.max(1, now - lastFrameTime))
         const distanceToTarget = targetProgress - displayedProgress
-        const damping = reduceMotion ? 1 : 1 - Math.exp(-deltaTime / 125)
+        const damping = reduceMotion ? 1 : 1 - Math.exp(-deltaTime / 210)
 
         displayedProgress += distanceToTarget * damping
         if (Math.abs(distanceToTarget) < 0.00003) displayedProgress = targetProgress
@@ -471,6 +520,7 @@
         track.style.transform = `translate3d(${-exactIndex * spacing}px, 0, 0)`
         progressBar.style.transform = `scaleX(${displayedProgress})`
         prompt.classList.toggle('is-hidden', displayedProgress > 0.025)
+        character.classList.toggle('is-moving', displayedProgress > 0.0005 || targetProgress > 0.0005)
 
         years.forEach((year, index) => year.classList.toggle('is-current', index === yearIndex))
 
@@ -482,11 +532,11 @@
           const visualDistance = Math.abs(exactIndex - lastVisualIndex) * spacing
 
           if (visualDistance > 0.02) {
-            spritePhase += visualDistance / (motionMode === 'run' ? 20 : 32)
+            spritePhase += visualDistance / (motionMode === 'run' ? 18 : 42)
             const frame = Math.floor(spritePhase) % 8
-            character.style.backgroundPosition = `${spritePositions[frame]} 0%`
+            motionCharacter.style.backgroundPosition = `${spritePositions[frame]} 0%`
           } else {
-            character.style.backgroundPosition = `${spritePositions[0]} 0%`
+            motionCharacter.style.backgroundPosition = `${spritePositions[0]} 0%`
           }
         }
 
@@ -515,7 +565,9 @@
         const velocity = Math.abs(deltaY) / deltaTime
 
         targetProgress = getProgress()
-        if (velocity > 3.4) runUntil = now + 240
+        if (deltaTime > 80) fastInputSamples = 0
+        fastInputSamples = velocity > 8 ? fastInputSamples + 1 : Math.max(0, fastInputSamples - 1)
+        if (fastInputSamples >= 3) runUntil = now + 260
         lastInputY = window.scrollY
         lastInputTime = now
         requestRender()
