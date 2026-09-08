@@ -752,8 +752,14 @@
           event.preventDefault()
           if (event.repeat) return
           const direction = ['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : -1
-          const currentIndex = automaticWalk ? automaticWalk.index : Math.round(displayedProgress * (years.length - 1))
-          walkToYear(Math.max(0, Math.min(years.length - 1, currentIndex + direction)))
+          const currentIndex = automaticWalk ? automaticWalk.index : Math.floor(displayedProgress * (years.length - 1) + 0.000001)
+          if (['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+            const chapterIndex = chapters.findIndex((item) => currentIndex >= item.from && currentIndex <= item.to)
+            const destination = Math.max(0, Math.min(chapters.length - 1, chapterIndex + direction))
+            if (destination !== chapterIndex) walkToYear(chapters[destination].from)
+          } else {
+            walkToYear(Math.max(0, Math.min(years.length - 1, currentIndex + direction)))
+          }
         } else if (['PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) {
           cancelAutomaticWalk()
         }
