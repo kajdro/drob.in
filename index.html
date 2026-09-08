@@ -323,8 +323,8 @@
         left: clamp(1.75rem, 3vw, 2.75rem);
         right: clamp(1.75rem, 3vw, 2.75rem);
         display: flex;
-        flex-wrap: wrap;
-        align-items: center;
+        align-items: flex-start;
+        justify-content: space-between;
         gap: 1rem 2rem;
         margin: 0;
         color: var(--text);
@@ -351,7 +351,10 @@
       }
 
       .contact-card nav {
-        display: contents;
+        display: flex;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 0.5rem clamp(0.75rem, 2vw, 2rem);
       }
 
       .contact-card p,
@@ -437,8 +440,7 @@
         <p class="scroll-prompt">Scroll to walk back in time</p>
 
         <aside class="contact-card" aria-label="About and contact">
-          <p>Kaj Drobin</p>
-          <p>Design and Product</p>
+          <p>Kaj Drobin<br>Design and Product</p>
           <nav aria-label="Contact links">
             <a href="mailto:kaj@drob.in">Email</a>
             <a href="https://x.com/kajdro">X</a>
