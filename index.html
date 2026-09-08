@@ -48,7 +48,7 @@
       }
 
       .scroll-space {
-        height: 925vh;
+        height: 1375vh;
       }
 
       .stage {
@@ -405,11 +405,15 @@
       let currentChapter = 0
       let ticking = false
       let spacing
-      let lastY = window.scrollY
-      let lastTime = performance.now()
+      let targetProgress = 0
+      let displayedProgress = 0
+      let lastInputY = window.scrollY
+      let lastInputTime = performance.now()
+      let lastFrameTime = performance.now()
+      let lastVisualIndex = 0
       let spritePhase = 0
       let motionMode = 'walk'
-      let settleTimer
+      let runUntil = 0
 
       const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
       const walkSprite = 'url("assets/kaj-walk-right.png")'
@@ -442,19 +446,31 @@
         chapter.classList.add('is-changing')
       }
 
-      const render = () => {
-        ticking = false
-        const now = performance.now()
-        const deltaY = window.scrollY - lastY
-        const deltaTime = Math.max(16, now - lastTime)
-        const velocity = Math.abs(deltaY) / deltaTime
+      const getProgress = () => {
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight
-        const progress = maxScroll > 0 ? Math.min(1, Math.max(0, window.scrollY / maxScroll)) : 0
-        const exactIndex = progress * (years.length - 1)
+        return maxScroll > 0 ? Math.min(1, Math.max(0, window.scrollY / maxScroll)) : 0
+      }
+
+      const setMotionMode = (mode) => {
+        if (mode === motionMode) return
+        motionMode = mode
+        character.style.backgroundImage = motionMode === 'run' ? runSprite : walkSprite
+      }
+
+      const render = (now) => {
+        ticking = false
+        const deltaTime = Math.min(64, Math.max(1, now - lastFrameTime))
+        const distanceToTarget = targetProgress - displayedProgress
+        const damping = reduceMotion ? 1 : 1 - Math.exp(-deltaTime / 125)
+
+        displayedProgress += distanceToTarget * damping
+        if (Math.abs(distanceToTarget) < 0.00003) displayedProgress = targetProgress
+
+        const exactIndex = displayedProgress * (years.length - 1)
         const yearIndex = Math.round(exactIndex)
         track.style.transform = `translate3d(${-exactIndex * spacing}px, 0, 0)`
-        progressBar.style.transform = `scaleX(${progress})`
-        prompt.classList.toggle('is-hidden', progress > 0.025)
+        progressBar.style.transform = `scaleX(${displayedProgress})`
+        prompt.classList.toggle('is-hidden', displayedProgress > 0.025)
 
         years.forEach((year, index) => year.classList.toggle('is-current', index === yearIndex))
 
@@ -462,26 +478,22 @@
         if (nextChapter >= 0) setChapter(nextChapter)
 
         if (!reduceMotion) {
-          const nextMode = velocity > 1.25 ? 'run' : 'walk'
-          if (nextMode !== motionMode) {
-            motionMode = nextMode
-            character.style.backgroundImage = motionMode === 'run' ? runSprite : walkSprite
-          }
+          setMotionMode(now < runUntil ? 'run' : 'walk')
+          const visualDistance = Math.abs(exactIndex - lastVisualIndex) * spacing
 
-          spritePhase += Math.abs(deltaY) / (motionMode === 'run' ? 22 : 34)
-          const frame = Math.floor(spritePhase) % 8
-          character.style.backgroundPosition = `${spritePositions[frame]} 0%`
-
-          clearTimeout(settleTimer)
-          settleTimer = setTimeout(() => {
-            motionMode = 'walk'
-            character.style.backgroundImage = walkSprite
+          if (visualDistance > 0.02) {
+            spritePhase += visualDistance / (motionMode === 'run' ? 20 : 32)
+            const frame = Math.floor(spritePhase) % 8
+            character.style.backgroundPosition = `${spritePositions[frame]} 0%`
+          } else {
             character.style.backgroundPosition = `${spritePositions[0]} 0%`
-          }, 140)
+          }
         }
 
-        lastY = window.scrollY
-        lastTime = now
+        lastVisualIndex = exactIndex
+        lastFrameTime = now
+
+        if (displayedProgress !== targetProgress) requestRender()
       }
 
       const requestRender = () => {
@@ -492,13 +504,30 @@
 
       const handleResize = () => {
         spacing = getSpacing()
+        targetProgress = getProgress()
+        requestRender()
+      }
+
+      const handleScroll = () => {
+        const now = performance.now()
+        const deltaY = window.scrollY - lastInputY
+        const deltaTime = Math.max(16, now - lastInputTime)
+        const velocity = Math.abs(deltaY) / deltaTime
+
+        targetProgress = getProgress()
+        if (velocity > 3.4) runUntil = now + 240
+        lastInputY = window.scrollY
+        lastInputTime = now
         requestRender()
       }
 
       spacing = getSpacing()
-      window.addEventListener('scroll', requestRender, { passive: true })
+      targetProgress = getProgress()
+      displayedProgress = targetProgress
+      lastVisualIndex = displayedProgress * (years.length - 1)
+      window.addEventListener('scroll', handleScroll, { passive: true })
       window.addEventListener('resize', handleResize)
-      render()
+      requestRender()
     </script>
   </body>
 </html>
