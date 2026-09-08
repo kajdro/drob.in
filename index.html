@@ -35,6 +35,7 @@
       }
 
       html {
+        overflow-anchor: none;
         background: var(--background);
       }
 
@@ -213,6 +214,13 @@
       }
 
       .year-mark {
+        appearance: none;
+        border: 0;
+        padding: 0;
+        background: none;
+        font-family: inherit;
+        font-weight: inherit;
+        cursor: pointer;
         position: absolute;
         top: 1.35rem;
         left: calc(var(--index) * var(--spacing));
@@ -224,6 +232,11 @@
         line-height: 1rem;
         letter-spacing: 0.02em;
         opacity: 0.3;
+      }
+
+      .year-mark:focus-visible {
+        outline: 1px solid currentColor;
+        outline-offset: 5px;
       }
 
       .year-mark::before {
@@ -417,27 +430,27 @@
           <span class="character-sprite character-motion"></span>
         </div>
 
-        <div class="timeline-window" aria-hidden="true">
+        <div class="timeline-window" aria-label="Choose a year">
           <div class="timeline-track" id="timeline-track">
             <div class="timeline-line"></div>
-            <span class="year-mark" style="--index: 0">Now</span>
-            <span class="year-mark" style="--index: 1">2025</span>
-            <span class="year-mark" style="--index: 2">2024</span>
-            <span class="year-mark" style="--index: 3">2023</span>
-            <span class="year-mark" style="--index: 4">2022</span>
-            <span class="year-mark" style="--index: 5">2021</span>
-            <span class="year-mark" style="--index: 6">2020</span>
-            <span class="year-mark" style="--index: 7">2019</span>
-            <span class="year-mark" style="--index: 8">2018</span>
-            <span class="year-mark" style="--index: 9">2017</span>
-            <span class="year-mark" style="--index: 10">2016</span>
-            <span class="year-mark" style="--index: 11">2015</span>
-            <span class="year-mark" style="--index: 12">2014</span>
-            <span class="year-mark" style="--index: 13">2013</span>
-            <span class="year-mark" style="--index: 14">2012</span>
-            <span class="year-mark" style="--index: 15">2011</span>
-            <span class="year-mark" style="--index: 16">2010</span>
-            <span class="year-mark" style="--index: 17">2009</span>
+            <button type="button" class="year-mark" style="--index: 0">Now</button>
+            <button type="button" class="year-mark" style="--index: 1">2025</button>
+            <button type="button" class="year-mark" style="--index: 2">2024</button>
+            <button type="button" class="year-mark" style="--index: 3">2023</button>
+            <button type="button" class="year-mark" style="--index: 4">2022</button>
+            <button type="button" class="year-mark" style="--index: 5">2021</button>
+            <button type="button" class="year-mark" style="--index: 6">2020</button>
+            <button type="button" class="year-mark" style="--index: 7">2019</button>
+            <button type="button" class="year-mark" style="--index: 8">2018</button>
+            <button type="button" class="year-mark" style="--index: 9">2017</button>
+            <button type="button" class="year-mark" style="--index: 10">2016</button>
+            <button type="button" class="year-mark" style="--index: 11">2015</button>
+            <button type="button" class="year-mark" style="--index: 12">2014</button>
+            <button type="button" class="year-mark" style="--index: 13">2013</button>
+            <button type="button" class="year-mark" style="--index: 14">2012</button>
+            <button type="button" class="year-mark" style="--index: 15">2011</button>
+            <button type="button" class="year-mark" style="--index: 16">2010</button>
+            <button type="button" class="year-mark" style="--index: 17">2009</button>
           </div>
         </div>
         <div class="center-notch" aria-hidden="true"></div>
@@ -519,6 +532,7 @@
       let motionMode = 'walk'
       let runUntil = 0
       let fastInputSamples = 0
+      let automaticWalk = null
 
       const TURN_SCROLL_DISTANCE = 180
       const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
@@ -639,7 +653,7 @@
         if (nextChapter >= 0) setChapter(nextChapter)
 
         if (!reduceMotion) {
-          setMotionMode(now < runUntil ? 'run' : 'walk')
+          setMotionMode(!automaticWalk && now < runUntil ? 'run' : 'walk')
           const visualDistance = Math.abs(exactIndex - lastVisualIndex) * spacing
 
           if (visualDistance > 0.02) {
@@ -660,6 +674,45 @@
         ticking = true
         requestAnimationFrame(render)
       }
+
+      const cancelAutomaticWalk = () => {
+        if (automaticWalk) cancelAnimationFrame(automaticWalk.frame)
+        automaticWalk = null
+        fastInputSamples = 0
+        runUntil = 0
+      }
+
+      const walkToYear = (index) => {
+        cancelAutomaticWalk()
+        const startY = window.scrollY
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+        const endY = index === 0 ? 0 : Math.min(maxScroll,
+          Math.ceil(TURN_SCROLL_DISTANCE + index / (years.length - 1) * (maxScroll - TURN_SCROLL_DISTANCE)))
+        if (reduceMotion) {
+          window.scrollTo(0, endY)
+          return
+        }
+        const distance = Math.abs(index - displayedProgress * (years.length - 1))
+        const duration = Math.min(6000, Math.max(900, distance * 1000))
+        const journey = { frame: 0, started: performance.now() }
+        automaticWalk = journey
+        const step = (now) => {
+          if (automaticWalk !== journey) return
+          const progress = Math.min(1, (now - journey.started) / duration)
+          const eased = progress * progress * (3 - 2 * progress)
+          window.scrollTo(0, startY + (endY - startY) * eased)
+          if (progress < 1) journey.frame = requestAnimationFrame(step)
+          else automaticWalk = null
+        }
+        journey.frame = requestAnimationFrame(step)
+      }
+
+      years.forEach((year, index) => year.addEventListener('click', () => walkToYear(index)))
+      window.addEventListener('wheel', cancelAutomaticWalk, { passive: true })
+      window.addEventListener('touchstart', cancelAutomaticWalk, { passive: true })
+      window.addEventListener('keydown', (event) => {
+        if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) cancelAutomaticWalk()
+      })
 
       const showEntrance = () => {
         const stage = document.querySelector('.stage')
@@ -688,7 +741,7 @@
         targetProgress = getProgress()
         if (deltaTime > 80) fastInputSamples = 0
         fastInputSamples = velocity > 8 ? fastInputSamples + 1 : Math.max(0, fastInputSamples - 1)
-        if (fastInputSamples >= 3) runUntil = now + 260
+        if (!automaticWalk && fastInputSamples >= 3) runUntil = now + 260
         lastInputY = window.scrollY
         lastInputTime = now
         requestRender()
