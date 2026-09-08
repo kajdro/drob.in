@@ -24,7 +24,7 @@
     <style>
       @font-face {
         font-family: "Inter";
-        src: url("assets/inter-variable.woff2") format("woff2");
+        src: url("assets/versioned/inter-variable.693b77d4f32e.woff2") format("woff2");
         font-style: normal;
         font-weight: 100 900;
         font-display: swap;
@@ -32,7 +32,7 @@
 
       @font-face {
         font-family: "Geist";
-        src: url("assets/geist.woff2") format("woff2");
+        src: url("assets/versioned/geist.19f9c92546aa.woff2") format("woff2");
         font-style: normal;
         font-weight: 100 900;
         font-display: swap;
@@ -192,7 +192,7 @@
         width: calc(var(--character-height) * 305 / 660);
         height: calc(var(--character-height) * 676 / 660);
         bottom: calc(0.6rem - var(--character-height) * 8 / 660);
-        background-image: url("assets/kaj-turn-right.png");
+        background-image: url("assets/versioned/kaj-turn-right.f43fc5d7d029.webp");
         background-position: 0% 0%;
         background-size: 400% 100%;
         opacity: 1;
@@ -204,7 +204,7 @@
         width: calc(var(--character-height) * 264 / 525);
         height: calc(var(--character-height) * 541 / 525);
         bottom: calc(0.6rem - var(--character-height) * 8 / 525);
-        background-image: url("assets/kaj-walk-clean.png");
+        background-image: url("assets/versioned/kaj-walk-clean.e6a35af2d0a9.webp");
         background-position: 0% 0%;
         background-size: 800% 100%;
         opacity: 0;
@@ -216,7 +216,7 @@
 
       .character-run {
         visibility: hidden;
-        background-image: url("assets/kaj-run-refined.png");
+        background-image: url("assets/versioned/kaj-run-refined.b207e03fd0ae.webp");
         background-position: 0% 56%;
         left: calc(var(--character-height) * -0.09);
         /* Eight 271.5px cells; crop the sheet's top/bottom padding in CSS. */
@@ -661,7 +661,7 @@
       const spritePositions = Array.from({ length: 8 }, (_, index) => `${index / 7 * 100}%`)
       const turnPositions = ['0%', '33.333%', '66.667%', '100%']
 
-      const spritesReady = Promise.all(['assets/kaj-turn-right.png', 'assets/kaj-walk-clean.png', 'assets/kaj-run-refined.png'].map((source) => {
+      const spritesReady = Promise.all(['assets/versioned/kaj-turn-right.f43fc5d7d029.webp', 'assets/versioned/kaj-walk-clean.e6a35af2d0a9.webp', 'assets/versioned/kaj-run-refined.b207e03fd0ae.webp'].map((source) => {
         const image = new Image()
         image.src = source
         return image.decode()
