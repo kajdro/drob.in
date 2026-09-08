@@ -655,7 +655,7 @@
           progressVelocity = 0
         } else {
           const seconds = deltaTime / 1000
-          const frequency = 9.5
+          const frequency = touchGesture?.axis ? 22 : 9.5
           const offset = displayedProgress - targetProgress
           const momentum = progressVelocity + frequency * offset
           const decay = Math.exp(-frequency * seconds)
@@ -730,7 +730,10 @@
         requestAnimationFrame(render)
       }
 
+      let swipeMomentum = null
       const cancelAutomaticWalk = () => {
+        if (swipeMomentum) cancelAnimationFrame(swipeMomentum.frame)
+        swipeMomentum = null
         if (automaticWalk) cancelAnimationFrame(automaticWalk.frame)
         automaticWalk = null
         fastInputSamples = 0
@@ -767,12 +770,36 @@
       window.addEventListener('wheel', cancelAutomaticWalk, { passive: true })
       let touchGesture = null
       let suppressSwipeClickUntil = 0
+      // Both axes share the same distance and release physics on touch devices.
+      const coastAfterSwipe = (velocity) => {
+        if (reduceMotion || Math.abs(velocity) < 0.08) return
+        const coast = { frame: 0, time: performance.now(), position: window.scrollY, velocity }
+        swipeMomentum = coast
+        const step = (now) => {
+          if (swipeMomentum !== coast) return
+          const elapsed = Math.min(64, now - coast.time)
+          coast.time = now
+          const decay = Math.exp(-elapsed / 325)
+          coast.position += coast.velocity * 325 * (1 - decay)
+          coast.velocity *= decay
+          const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+          coast.position = Math.max(0, Math.min(maxScroll, coast.position))
+          window.scrollTo(0, coast.position)
+          if (Math.abs(coast.velocity) < 0.02 || coast.position === 0 || coast.position === maxScroll) {
+            swipeMomentum = null
+          } else {
+            coast.frame = requestAnimationFrame(step)
+          }
+        }
+        coast.frame = requestAnimationFrame(step)
+      }
       window.addEventListener('touchstart', (event) => {
         cancelAutomaticWalk()
         suppressSwipeClickUntil = 0
         const touch = event.touches[0]
         touchGesture = event.touches.length === 1
-          ? { id: touch.identifier, x: touch.clientX, y: touch.clientY, scrollY: window.scrollY, axis: null }
+          ? { id: touch.identifier, x: touch.clientX, y: touch.clientY, scrollY: window.scrollY,
+              axis: null, distance: 0, time: performance.now(), velocity: 0 }
           : null
       }, { passive: true })
       window.addEventListener('touchmove', (event) => {
@@ -782,20 +809,33 @@
         }
         const touch = event.touches[0]
         if (touch.identifier !== touchGesture.id) return
+        if (event.cancelable) event.preventDefault()
         const dx = touchGesture.x - touch.clientX
         const dy = touchGesture.y - touch.clientY
         if (!touchGesture.axis) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return
+          if (Math.max(Math.abs(dx), Math.abs(dy)) < 6) return
           touchGesture.axis = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical'
         }
-        if (touchGesture.axis !== 'horizontal') return
-        if (event.cancelable) event.preventDefault()
-        suppressSwipeClickUntil = performance.now() + 500
+        const now = performance.now()
+        const distance = touchGesture.axis === 'horizontal' ? dx : dy
+        const elapsed = Math.max(8, now - touchGesture.time)
+        const velocity = (distance - touchGesture.distance) / elapsed
+        touchGesture.velocity = elapsed > 100 ? velocity : touchGesture.velocity * 0.25 + velocity * 0.75
+        touchGesture.distance = distance
+        touchGesture.time = now
+        suppressSwipeClickUntil = now + 500
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight
-        window.scrollTo(0, Math.max(0, Math.min(maxScroll, touchGesture.scrollY + dx)))
+        window.scrollTo(0, Math.max(0, Math.min(maxScroll, touchGesture.scrollY + distance)))
       }, { passive: false })
-      const endTouchGesture = () => {
-        if (touchGesture?.axis === 'horizontal') suppressSwipeClickUntil = performance.now() + 500
+      const endTouchGesture = (event) => {
+        if (touchGesture?.axis) {
+          const now = performance.now()
+          suppressSwipeClickUntil = now + 500
+          // Holding the finger still before lifting should stop the glide.
+          if (event.type === 'touchend' && now - touchGesture.time < 100) {
+            coastAfterSwipe(Math.max(-8, Math.min(8, touchGesture.velocity)))
+          }
+        }
         touchGesture = null
       }
       window.addEventListener('touchend', endTouchGesture, { passive: true })
