@@ -20,7 +20,8 @@
         --background: #080b10;
         --text: #f4f6f8;
         --secondary: #858d99;
-        --line: rgba(133, 141, 153, 0.34);
+        --line: rgba(133, 141, 153, 0.18);
+        --character-height: clamp(3.8rem, 6.04vw, 4.53rem);
         --spacing: clamp(11rem, 22vw, 20rem);
         --regular: 450;
         --medium: 550;
@@ -111,13 +112,15 @@
         image-rendering: pixelated;
         transform: translate3d(-50%, 0, 0);
         transform-origin: 50% 100%;
-        transition: opacity 140ms ease-in-out;
+        transition: opacity 180ms ease-in-out;
         will-change: opacity;
       }
 
       .character-idle {
-        width: clamp(6.4rem, 8vw, 7.9rem);
-        aspect-ratio: 256 / 386;
+        /* Match the visible artwork, accounting for transparent sprite padding. */
+        width: calc(var(--character-height) * 1024 / 1350);
+        height: calc(var(--character-height) * 1536 / 1350);
+        bottom: calc(0.6rem - var(--character-height) * 84 / 1350);
         background-image: url("assets/kaj-idle-front.png");
         background-position: 50% 100%;
         background-size: contain;
@@ -125,8 +128,9 @@
       }
 
       .character-motion {
-        width: clamp(3.15rem, 5vw, 3.75rem);
-        aspect-ratio: 0.3123;
+        width: calc(var(--character-height) * 124 / 214);
+        height: calc(var(--character-height) * 397 / 214);
+        bottom: calc(0.6rem - var(--character-height) * 91 / 214);
         background-image: url("assets/kaj-walk-right.png");
         background-position: 0% 0%;
         background-size: 800% 100%;
@@ -148,6 +152,7 @@
         left: 0;
         width: 100%;
         height: 8rem;
+        mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
       }
 
       .timeline-track {
@@ -177,7 +182,7 @@
         text-align: center;
         font-size: 0.8125rem;
         letter-spacing: -0.006em;
-        transition: color 150ms ease, opacity 150ms ease;
+        opacity: 0.58;
       }
 
       .year-mark::before {
@@ -187,10 +192,7 @@
         height: 0.5rem;
         margin: -0.25rem auto 1.15rem;
         background: currentColor;
-      }
-
-      .year-mark.is-current {
-        color: var(--text);
+        opacity: 0.42;
       }
 
       .center-notch {
@@ -200,7 +202,7 @@
         left: 50%;
         width: 1px;
         height: 0.7rem;
-        background: var(--text);
+        background: rgba(133, 141, 153, 0.6);
         transform: translateX(-50%);
       }
 
@@ -212,6 +214,7 @@
         width: min(31rem, calc(100% - 3rem));
         transform: translateX(-50%);
         text-align: center;
+        transition: opacity 140ms ease-out;
       }
 
       .chapter-date,
@@ -244,21 +247,6 @@
         line-height: 1.5;
       }
 
-      .chapter.is-changing {
-        animation: chapter-change 180ms cubic-bezier(0.215, 0.61, 0.355, 1);
-      }
-
-      @keyframes chapter-change {
-        from {
-          opacity: 0;
-          transform: translate3d(-50%, 0.35rem, 0);
-        }
-        to {
-          opacity: 1;
-          transform: translate3d(-50%, 0, 0);
-        }
-      }
-
       .progress {
         position: absolute;
         z-index: 5;
@@ -284,12 +272,8 @@
           bottom: 43%;
         }
 
-        .character-idle {
-          width: 6.4rem;
-        }
-
-        .character-motion {
-          width: 3.25rem;
+        .character {
+          --character-height: 3.93rem;
         }
 
         .timeline-window {
@@ -318,12 +302,8 @@
           bottom: 44%;
         }
 
-        .character-idle {
-          width: 6.4rem;
-        }
-
-        .character-motion {
-          width: 3.2rem;
+        .character {
+          --character-height: 3.87rem;
         }
 
         .timeline-window {
@@ -346,13 +326,11 @@
       @media (prefers-reduced-motion: reduce) {
         .scroll-prompt,
         .year-mark,
+        .chapter,
         .character-sprite {
           transition: none;
         }
 
-        .chapter.is-changing {
-          animation: none;
-        }
       }
     </style>
   </head>
@@ -451,10 +429,13 @@
       ]
 
       let currentChapter = 0
+      let pendingChapter = 0
+      let chapterTimer
       let ticking = false
       let spacing
       let targetProgress = 0
       let displayedProgress = 0
+      let progressVelocity = 0
       let lastInputY = window.scrollY
       let lastInputTime = performance.now()
       let lastFrameTime = performance.now()
@@ -483,16 +464,28 @@
       }
 
       const setChapter = (index) => {
-        if (index === currentChapter) return
-        currentChapter = index
-        const content = chapters[index]
-        date.textContent = content.date
-        role.textContent = content.role
-        company.textContent = content.company
-        description.textContent = content.description
-        chapter.classList.remove('is-changing')
-        void chapter.offsetWidth
-        chapter.classList.add('is-changing')
+        if (index === pendingChapter) return
+        pendingChapter = index
+        clearTimeout(chapterTimer)
+        if (index === currentChapter) {
+          chapter.style.opacity = '1'
+          return
+        }
+        const update = () => {
+          currentChapter = index
+          const content = chapters[index]
+          date.textContent = content.date
+          role.textContent = content.role
+          company.textContent = content.company
+          description.textContent = content.description
+          chapter.style.opacity = '1'
+        }
+        if (reduceMotion) {
+          update()
+        } else {
+          chapter.style.opacity = '0'
+          chapterTimer = setTimeout(update, 140)
+        }
       }
 
       const getProgress = () => {
@@ -509,11 +502,28 @@
       const render = (now) => {
         ticking = false
         const deltaTime = Math.min(64, Math.max(1, now - lastFrameTime))
-        const distanceToTarget = targetProgress - displayedProgress
-        const damping = reduceMotion ? 1 : 1 - Math.exp(-deltaTime / 210)
-
-        displayedProgress += distanceToTarget * damping
-        if (Math.abs(distanceToTarget) < 0.00003) displayedProgress = targetProgress
+        // Exact critically damped spring: preserve velocity across gestures,
+        // with no bounce and the same response at every display refresh rate.
+        if (reduceMotion) {
+          displayedProgress = targetProgress
+          progressVelocity = 0
+        } else {
+          const seconds = deltaTime / 1000
+          const frequency = 9.5
+          const offset = displayedProgress - targetProgress
+          const momentum = progressVelocity + frequency * offset
+          const decay = Math.exp(-frequency * seconds)
+          displayedProgress = targetProgress + (offset + momentum * seconds) * decay
+          progressVelocity = (progressVelocity - frequency * momentum * seconds) * decay
+          if (displayedProgress < 0 || displayedProgress > 1) {
+            displayedProgress = Math.max(0, Math.min(1, displayedProgress))
+            progressVelocity = 0
+          }
+          if (Math.abs(displayedProgress - targetProgress) < 0.000005 && Math.abs(progressVelocity) < 0.00002) {
+            displayedProgress = targetProgress
+            progressVelocity = 0
+          }
+        }
 
         const exactIndex = displayedProgress * (years.length - 1)
         const yearIndex = Math.round(exactIndex)
@@ -522,7 +532,10 @@
         prompt.classList.toggle('is-hidden', displayedProgress > 0.025)
         character.classList.toggle('is-moving', displayedProgress > 0.0005 || targetProgress > 0.0005)
 
-        years.forEach((year, index) => year.classList.toggle('is-current', index === yearIndex))
+        years.forEach((year, index) => {
+          const proximity = Math.max(0, 1 - Math.abs(index - exactIndex))
+          year.style.opacity = `${0.58 + proximity * 0.32}`
+        })
 
         const nextChapter = chapters.findIndex((item) => yearIndex >= item.from && yearIndex <= item.to)
         if (nextChapter >= 0) setChapter(nextChapter)
@@ -535,15 +548,13 @@
             spritePhase += visualDistance / (motionMode === 'run' ? 18 : 42)
             const frame = Math.floor(spritePhase) % 8
             motionCharacter.style.backgroundPosition = `${spritePositions[frame]} 0%`
-          } else {
-            motionCharacter.style.backgroundPosition = `${spritePositions[0]} 0%`
           }
         }
 
         lastVisualIndex = exactIndex
         lastFrameTime = now
 
-        if (displayedProgress !== targetProgress) requestRender()
+        if (displayedProgress !== targetProgress || progressVelocity !== 0) requestRender()
       }
 
       const requestRender = () => {
@@ -564,6 +575,7 @@
         const deltaTime = Math.max(16, now - lastInputTime)
         const velocity = Math.abs(deltaY) / deltaTime
 
+        if (!ticking) lastFrameTime = now
         targetProgress = getProgress()
         if (deltaTime > 80) fastInputSamples = 0
         fastInputSamples = velocity > 8 ? fastInputSamples + 1 : Math.max(0, fastInputSamples - 1)
