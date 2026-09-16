@@ -650,6 +650,7 @@
       let lastFrameTime = performance.now()
       let lastVisualIndex = 0
       let spritePhase = 0
+      let gaitFrameRate = 0
       let motionMode = 'walk'
       let gaitSettled = true
       let gaitChangedAt = -Infinity
@@ -778,10 +779,17 @@
         if (!reduceMotion && characterTurn === 1) {
           const finishingStep = !isMoving && !gaitSettled
           const previousPhase = spritePhase
-          // One eight-frame cycle covers a body-scaled ground distance.
-          // Advance from rendered travel, including inertia, rather than a capped clock.
-          const cycleDistance = characterHeight * (motionMode === 'run' ? 1.4 : 0.9)
-          const advance = finishingStep ? deltaTime / 90 : visualDistance * 8 / cycleDistance
+          // A relaxed cadence at low speed, with a gradual rise instead of
+          // letting fast timeline travel produce frantic limb movements.
+          const seconds = deltaTime / 1000
+          const cycleDistance = characterHeight * (motionMode === 'run' ? 3.2 : 2.8)
+          const distanceRate = visualDistance * 8 / cycleDistance / seconds
+          const maxFrameRate = motionMode === 'run' ? 12 : 8
+          const targetFrameRate = distanceRate / Math.sqrt(1 + (distanceRate / maxFrameRate) ** 2)
+          const blend = 1 - Math.exp(-deltaTime / 160)
+          gaitFrameRate += (targetFrameRate - gaitFrameRate) * blend
+          const advance = finishingStep ? deltaTime / 160
+            : visualDistance > 0.001 ? gaitFrameRate * seconds : 0
           spritePhase += advance
           const planted = Math.floor(spritePhase / 4) > Math.floor(previousPhase / 4)
             || spritePhase % 4 < 0.001
@@ -796,6 +804,7 @@
             // Preserve fractional progress so gait changes do not lose travelled distance.
           }
         } else if (characterTurn === 0) {
+          gaitFrameRate = 0
           spritePhase = 0
           motionMode = 'walk'
           gaitSettled = !isMoving
@@ -1023,6 +1032,7 @@
         character.style.removeProperty('transform')
         character.classList.remove('is-entering', 'is-facing-left')
         characterTurn = 0
+        gaitFrameRate = 0
         spritePhase = 0
         motionMode = 'walk'
         gaitSettled = true
