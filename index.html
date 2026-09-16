@@ -141,7 +141,14 @@
         position: absolute;
         z-index: 4;
         left: var(--timeline-origin);
-        top: calc(var(--timeline-y) - 1rem);
+        /* Keep this clearance adjustable while testing the grounded position. */
+        --ground-clearance: 2px;
+        --body-lift: 0px;
+        --body-scale: 1;
+        --foot-offset: 0px;
+        --shadow-scale: 1;
+        --shadow-opacity: 0.25;
+        top: calc(var(--timeline-y) + 0.6rem - var(--ground-clearance));
         bottom: auto;
         width: 0;
         height: 0;
@@ -171,20 +178,34 @@
         to { background-position: 114.285714% 56%; }
       }
 
+      .character::before {
+        content: "";
+        position: absolute;
+        left: calc(var(--character-height) * 0.21);
+        bottom: calc(0.6rem - var(--ground-clearance) - 3px);
+        width: calc(var(--character-height) * 0.48);
+        height: 5px;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, #000 0%, transparent 72%);
+        opacity: var(--shadow-opacity);
+        transform: translateX(-50%) scaleX(var(--shadow-scale));
+        pointer-events: none;
+      }
+
       .character-sprite {
         position: absolute;
         bottom: 0;
         left: 0;
         background-repeat: no-repeat;
         image-rendering: pixelated;
-        transform: translate3d(0, 0, 0);
+        transform: translate3d(var(--foot-offset), var(--body-lift), 0) scaleY(var(--body-scale));
         transform-origin: 50% 100%;
         transition: none;
         will-change: opacity;
       }
 
       .character.is-facing-left .character-sprite {
-        transform: scaleX(-1);
+        transform: translate3d(var(--foot-offset), var(--body-lift), 0) scale(-1, var(--body-scale));
       }
 
       .character-turn {
@@ -650,6 +671,7 @@
       let lastFrameTime = performance.now()
       let lastVisualIndex = 0
       let spritePhase = 0
+      let footOffset = 0
       let gaitFrameRate = 0
       let motionMode = 'walk'
       let gaitSettled = true
@@ -818,6 +840,25 @@
         const showMotion = characterTurn === 1
         character.classList.toggle('is-facing-left', characterTurn > 0 && travelDirection < 0)
         turnCharacter.style.backgroundPosition = `${turnPositions[turnFrame]} 0%`
+        // Subtle contact compression and push-off, synchronized to each half-stride.
+        // Keep a bounded ground correction: the existing drawings cannot support
+        // exact foot locking at every scroll speed without changing the artwork.
+        const stepPhase = (spritePhase % 4) / 4
+        const weight = showMotion && !reduceMotion ? Math.min(1, gaitFrameRate / 4) : 0
+        const lift = motionMode === 'run' ? Math.sin(Math.PI * stepPhase) ** 2 : 0
+        const contact = Math.max(0, 1 - stepPhase / 0.35)
+        if (showMotion && visualDistance > 0.001 && stepPhase < 0.35) {
+          const limit = characterHeight * 0.025
+          footOffset = Math.max(-limit, Math.min(limit, footOffset - visualDelta * 0.15))
+        } else {
+          footOffset *= Math.exp(-deltaTime / 80)
+        }
+        if (!showMotion || reduceMotion) footOffset = 0
+        character.style.setProperty('--foot-offset', `${footOffset}px`)
+        character.style.setProperty('--body-lift', `${-lift * characterHeight * 0.018 * weight}px`)
+        character.style.setProperty('--body-scale', `${1 - contact * 0.012 * weight}`)
+        character.style.setProperty('--shadow-scale', `${1 - lift * 0.16 * weight}`)
+        character.style.setProperty('--shadow-opacity', `${0.25 - lift * 0.07 * weight}`)
         const frame = Math.floor(spritePhase) % 8
         motionCharacter.style.backgroundPosition = `${spritePositions[frame]} 0%`
         runCharacter.style.backgroundPosition = `${spritePositions[frame]} 56%`
@@ -1029,6 +1070,8 @@
 
       const finishEntrance = () => {
         entrance = null
+        footOffset = 0
+        for (const property of ['--foot-offset', '--body-lift', '--body-scale', '--shadow-scale', '--shadow-opacity']) character.style.removeProperty(property)
         character.style.removeProperty('transform')
         character.classList.remove('is-entering', 'is-facing-left')
         characterTurn = 0
