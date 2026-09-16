@@ -639,6 +639,7 @@
       let chapterTimer
       let ticking = false
       let spacing
+      let characterHeight = 64
       let targetProgress = 0
       let displayedProgress = 0
       let progressVelocity = 0
@@ -777,9 +778,10 @@
         if (!reduceMotion && characterTurn === 1) {
           const finishingStep = !isMoving && !gaitSettled
           const previousPhase = spritePhase
-          const stride = motionMode === 'run' ? 18 : 42
-          const advance = finishingStep ? deltaTime / 90
-            : Math.min(visualDistance / stride, deltaTime / (motionMode === 'run' ? 75 : 90))
+          // One eight-frame cycle covers a body-scaled ground distance.
+          // Advance from rendered travel, including inertia, rather than a capped clock.
+          const cycleDistance = characterHeight * (motionMode === 'run' ? 1.4 : 0.9)
+          const advance = finishingStep ? deltaTime / 90 : visualDistance * 8 / cycleDistance
           spritePhase += advance
           const planted = Math.floor(spritePhase / 4) > Math.floor(previousPhase / 4)
             || spritePhase % 4 < 0.001
@@ -791,7 +793,7 @@
           } else if (isMoving && requestedGait !== motionMode && planted && now - gaitChangedAt >= 700) {
             motionMode = requestedGait
             gaitChangedAt = now
-            spritePhase = Math.floor(spritePhase / 4) * 4
+            // Preserve fractional progress so gait changes do not lose travelled distance.
           }
         } else if (characterTurn === 0) {
           spritePhase = 0
@@ -1094,6 +1096,7 @@
         // Browser chrome and font loading can resize the viewport during startup.
         // Keep the run alive; its destination is positioned by the layout itself.
         spacing = getSpacing()
+        characterHeight = runCharacter.getBoundingClientRect().height || 64
         targetProgress = getProgress()
         requestRender()
       }
@@ -1140,6 +1143,7 @@
       }
 
       spacing = getSpacing()
+      characterHeight = runCharacter.getBoundingClientRect().height || 64
       targetProgress = getProgress()
       displayedProgress = targetProgress
       lastVisualIndex = displayedProgress * (years.length - 1)
