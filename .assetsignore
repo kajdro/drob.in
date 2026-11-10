@@ -1,0 +1,6 @@
+# Files Cloudflare (wrangler) must not publish. Uses .gitignore syntax.
+.git
+.assetsignore
+.claude
+.DS_Store
+source-art
